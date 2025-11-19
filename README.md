@@ -49,6 +49,7 @@ docker build -t osm_city_pipeline docker/
 # Generate assets (example map mounted at /data)
 docker run --rm -it \
   -v $(pwd):/data \
+  --user $(id -u):$(id -g) \
   osm_city_pipeline \
   /data/map_osm_converter/data/bari.osm
 ```
@@ -57,6 +58,8 @@ The entrypoint copies `generate_city.py` from the mounted workspace into `/app/`
 
 ```
 python3 /app/generate_city.py /data/... --output-dir /data
+
+> Tip: using `--user $(id -u):$(id -g)` keeps generated files owned by your host user so cleanup is easy.
 ```
 
 All artifacts (`config/`, `world/`, `spawn_points.json`, `camera_views.json`) are written directly onto the host via the bind mount.
