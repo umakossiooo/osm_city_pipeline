@@ -5,12 +5,16 @@ FROM osrf/ros:jazzy-desktop-full
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=jazzy
 
-# Install Gazebo Harmonic
+# Install GIS dependencies and Python tools
+# Note: Gazebo Harmonic comes with ros:jazzy-desktop-full base image
 RUN apt-get update && apt-get install -y \
-    gazebo-harmonic \
     python3-pip \
     python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Python GIS dependencies
+# Use --break-system-packages as we're in a container environment
+RUN pip3 install --no-cache-dir --break-system-packages pyproj
 
 # Initialize rosdep
 RUN rosdep update || true
