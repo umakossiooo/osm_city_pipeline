@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 import json
+import math
+import os
 
 # Handle both package and direct execution
 try:
@@ -13,6 +15,8 @@ try:
     from .road_extractor import extract_road_metadata, extract_and_save_road_metadata
     from .sdf_generator import generate_sdf_world
     from .metadata_exporter import export_all_metadata, export_roads_json, export_spawn_points_yaml
+    from .debug_tools import generate_debug_camera_sdf, generate_debug_spawn_sdf
+    from .camera_utils import get_world_center_camera_pose, calculate_camera_pose_for_spawn_point
 except ImportError:
     # If running as script, add src directory to path
     import os
@@ -23,7 +27,8 @@ except ImportError:
     from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
     from osm_city_pipeline.sdf_generator import generate_sdf_world
     from osm_city_pipeline.metadata_exporter import export_all_metadata, export_roads_json, export_spawn_points_yaml
-    from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
+    from osm_city_pipeline.debug_tools import generate_debug_camera_sdf, generate_debug_spawn_sdf
+    from osm_city_pipeline.camera_utils import get_world_center_camera_pose, calculate_camera_pose_for_spawn_point
 
 
 def test_projection(args):
@@ -246,6 +251,305 @@ def export_metadata(args):
         return 1
 
 
+def debug_camera(args):
+    """Generate debug SDF with camera marker."""
+    osm_file = args.osm_file
+    output = args.output
+    
+    # Default output path
+    if output is None:
+        osm_path = Path(osm_file)
+        worlds_dir = Path('worlds')
+        worlds_dir.mkdir(exist_ok=True)
+        output = str(worlds_dir / "debug_camera.sdf")
+    
+    try:
+        print(f"Generating debug camera SDF from: {osm_file}")
+        print(f"Output: {output}")
+        print("")
+        
+        # Determine camera pose
+        camera_pose = None
+        if args.x is not None and args.y is not None:
+            # Custom position
+            camera_pose = (args.x, args.y, args.z, 0.0, 1.57, 0.0)
+            print(f"Using custom camera position: ({args.x}, {args.y}, {args.z})")
+        else:
+            # Use world center
+            print("Using world center camera position")
+        
+        # Delete old file if exists (RULE 4)
+        output_path = Path(output)
+        if output_path.exists():
+            print(f"Removing old file: {output}")
+            output_path.unlink()
+        
+        # Generate debug SDF
+        generate_debug_camera_sdf(osm_file, output, camera_pose)
+        
+        print("="*60)
+        print("Debug Camera SDF Generated")
+        print("="*60)
+        print(f"File: {output}")
+        print("")
+        print("The SDF file contains:")
+        print("  - Ground plane")
+        print("  - Camera marker (blue box)")
+        print("  - GUI camera positioned at marker")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error during debug camera generation: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+def debug_spawn(args):
+    """Generate debug SDF with spawn point markers."""
+    spawn_file = args.spawn_file
+    output = args.output
+    
+    # Default output path
+    if output is None:
+        worlds_dir = Path('worlds')
+        worlds_dir.mkdir(exist_ok=True)
+        output = str(worlds_dir / "debug_spawn.sdf")
+    
+    try:
+        print(f"Generating debug spawn SDF from: {spawn_file}")
+        print(f"Output: {output}")
+        print("")
+        
+        # Parse spawn IDs if provided
+        spawn_ids = None
+        if args.spawn_ids:
+            spawn_ids = [int(id.strip()) for id in args.spawn_ids.split(',')]
+            print(f"Visualizing spawn points: {spawn_ids}")
+        else:
+            print(f"Visualizing first {args.max_points} spawn points")
+        
+        # Delete old file if exists (RULE 4)
+        output_path = Path(output)
+        if output_path.exists():
+            print(f"Removing old file: {output}")
+            output_path.unlink()
+        
+        # Generate debug SDF
+        generate_debug_spawn_sdf(spawn_file, output, spawn_ids, args.max_points)
+        
+        print("="*60)
+        print("Debug Spawn SDF Generated")
+        print("="*60)
+        print(f"File: {output}")
+        print("")
+        print("The SDF file contains:")
+        print("  - Ground plane")
+        print("  - Spawn point markers (red spheres)")
+        print("  - Direction arrows (green cylinders)")
+        print("  - GUI camera positioned at first spawn point")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error during debug spawn generation: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+def reset_world(args):
+    """Reset/delete generated world files and metadata."""
+    osm_file = args.osm_file
+    delete_all = args.all
+    
+    try:
+        from pathlib import Path
+        import os
+        
+        osm_path = Path(osm_file)
+        base_name = osm_path.stem
+        
+        deleted_files = []
+        
+        # Delete world file
+        world_file = Path('worlds') / f"{base_name}.sdf"
+        if world_file.exists():
+            world_file.unlink()
+            deleted_files.append(str(world_file))
+            print(f"Deleted: {world_file}")
+        
+        # Delete metadata files
+        roads_file = Path('maps') / f"{base_name}_roads.json"
+        if roads_file.exists():
+            roads_file.unlink()
+            deleted_files.append(str(roads_file))
+            print(f"Deleted: {roads_file}")
+        
+        spawn_file = Path('maps') / f"{base_name}_spawn_points.yaml"
+        if spawn_file.exists():
+            spawn_file.unlink()
+            deleted_files.append(str(spawn_file))
+            print(f"Deleted: {spawn_file}")
+        
+        # Delete debug files
+        debug_camera = Path('worlds') / "debug_camera.sdf"
+        if debug_camera.exists():
+            debug_camera.unlink()
+            deleted_files.append(str(debug_camera))
+            print(f"Deleted: {debug_camera}")
+        
+        debug_spawn = Path('worlds') / "debug_spawn.sdf"
+        if debug_spawn.exists():
+            debug_spawn.unlink()
+            deleted_files.append(str(debug_spawn))
+            print(f"Deleted: {debug_spawn}")
+        
+        if delete_all:
+            # Delete all files in worlds/ and maps/ (except .osm files)
+            worlds_dir = Path('worlds')
+            if worlds_dir.exists():
+                for f in worlds_dir.glob('*.sdf'):
+                    if f not in deleted_files:
+                        f.unlink()
+                        deleted_files.append(str(f))
+                        print(f"Deleted: {f}")
+            
+            maps_dir = Path('maps')
+            if maps_dir.exists():
+                for f in maps_dir.glob('*.json'):
+                    if f not in deleted_files:
+                        f.unlink()
+                        deleted_files.append(str(f))
+                        print(f"Deleted: {f}")
+                for f in maps_dir.glob('*.yaml'):
+                    if f not in deleted_files:
+                        f.unlink()
+                        deleted_files.append(str(f))
+                        print(f"Deleted: {f}")
+        
+        print("")
+        print("="*60)
+        print("Reset Complete")
+        print("="*60)
+        print(f"Deleted {len(deleted_files)} file(s)")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error during reset: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+def list_streets(args):
+    """List all streets/roads from OSM file or roads.json."""
+    try:
+        import json
+        
+        roads_data = None
+        
+        if args.roads_file:
+            # Load from roads.json
+            with open(args.roads_file, 'r') as f:
+                roads_data = json.load(f)
+        elif args.osm_file:
+            # Extract from OSM file
+            from .metadata_exporter import export_roads_json
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+                export_roads_json(args.osm_file, tmp.name)
+                with open(tmp.name, 'r') as f:
+                    roads_data = json.load(f)
+                os.unlink(tmp.name)
+        else:
+            print("Error: Either --osm-file or --roads-file must be provided", file=sys.stderr)
+            return 1
+        
+        roads = roads_data['roads']
+        
+        if args.named_only:
+            roads = [r for r in roads if r.get('name')]
+        
+        print("="*60)
+        print("Streets/Roads List")
+        print("="*60)
+        print(f"Total roads: {len(roads)}")
+        if args.named_only:
+            print(f"Named roads: {len(roads)}")
+        print("")
+        
+        for i, road in enumerate(roads, 1):
+            name = road.get('name', 'Unnamed')
+            way_id = road.get('way_id', 'N/A')
+            hw_type = road.get('highway_type', 'unknown')
+            lanes = road.get('lanes', 1)
+            print(f"{i:3d}. {name}")
+            print(f"     Way ID: {way_id}, Type: {hw_type}, Lanes: {lanes}")
+        
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error listing streets: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+def spawn_pose(args):
+    """Get spawn point pose by ID."""
+    try:
+        import yaml
+        
+        with open(args.spawn_file, 'r') as f:
+            spawn_data = yaml.safe_load(f)
+        
+        spawn_points = spawn_data['spawn_points']
+        spawn_point = next((sp for sp in spawn_points if sp['id'] == args.id), None)
+        
+        if spawn_point is None:
+            print(f"Error: Spawn point with ID {args.id} not found", file=sys.stderr)
+            return 1
+        
+        pos = spawn_point['position']
+        orient = spawn_point.get('orientation', {})
+        yaw = orient.get('yaw', 0.0)
+        
+        print("="*60)
+        print(f"Spawn Point {args.id}")
+        print("="*60)
+        print(f"Name: {spawn_point.get('name', 'N/A')}")
+        print(f"Position (ENU):")
+        print(f"  East:  {pos['east']:.6f}")
+        print(f"  North: {pos['north']:.6f}")
+        print(f"  Up:    {pos['up']:.6f}")
+        print(f"Orientation:")
+        print(f"  Yaw:   {yaw:.6f} rad ({math.degrees(yaw):.2f} deg)")
+        print(f"Road Info:")
+        print(f"  Way ID: {spawn_point.get('way_id', 'N/A')}")
+        print(f"  Road Name: {spawn_point.get('road_name', 'N/A')}")
+        print(f"  Highway Type: {spawn_point.get('highway_type', 'N/A')}")
+        print("")
+        print("Gazebo Pose Format:")
+        print(f"  {pos['east']:.6f} {pos['north']:.6f} {pos['up']:.6f} 0 0 {yaw:.6f}")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error getting spawn pose: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
@@ -372,6 +676,160 @@ def main():
         help="Spacing between spawn points in meters (default: 10.0)"
     )
     metadata_parser.set_defaults(func=export_metadata)
+    
+    # debug-camera command
+    debug_camera_parser = subparsers.add_parser(
+        "debug-camera",
+        help="Generate debug SDF with camera marker"
+    )
+    debug_camera_parser.add_argument(
+        "--osm-file",
+        type=str,
+        required=True,
+        help="Path to OSM file"
+    )
+    debug_camera_parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Path to output SDF file (default: worlds/debug_camera.sdf)"
+    )
+    debug_camera_parser.add_argument(
+        "--x",
+        type=float,
+        default=None,
+        help="Camera X position (east). If not specified, uses world center."
+    )
+    debug_camera_parser.add_argument(
+        "--y",
+        type=float,
+        default=None,
+        help="Camera Y position (north). If not specified, uses world center."
+    )
+    debug_camera_parser.add_argument(
+        "--z",
+        type=float,
+        default=50.0,
+        help="Camera Z position (up, height). Default: 50.0m"
+    )
+    debug_camera_parser.set_defaults(func=debug_camera)
+    
+    # debug-spawn command
+    debug_spawn_parser = subparsers.add_parser(
+        "debug-spawn",
+        help="Generate debug SDF with spawn point markers"
+    )
+    debug_spawn_parser.add_argument(
+        "--spawn-file",
+        type=str,
+        required=True,
+        help="Path to spawn_points.yaml file"
+    )
+    debug_spawn_parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Path to output SDF file (default: worlds/debug_spawn.sdf)"
+    )
+    debug_spawn_parser.add_argument(
+        "--spawn-ids",
+        type=str,
+        default=None,
+        help="Comma-separated list of spawn point IDs to visualize (e.g., '0,1,2')"
+    )
+    debug_spawn_parser.add_argument(
+        "--max-points",
+        type=int,
+        default=50,
+        help="Maximum number of spawn points to visualize (default: 50)"
+    )
+    debug_spawn_parser.set_defaults(func=debug_spawn)
+    
+    # generate command (alias for generate-world)
+    generate_parser = subparsers.add_parser(
+        "generate",
+        help="Generate Gazebo world from OSM file (alias for generate-world)"
+    )
+    generate_parser.add_argument(
+        "--osm-file",
+        type=str,
+        required=True,
+        help="Path to OSM file"
+    )
+    generate_parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Path to output SDF world file (default: worlds/<osm_file_name>.sdf)"
+    )
+    generate_parser.add_argument(
+        "--world-name",
+        type=str,
+        default="osm_city",
+        help="Name of the world (default: osm_city)"
+    )
+    generate_parser.set_defaults(func=generate_world)
+    
+    # reset command
+    reset_parser = subparsers.add_parser(
+        "reset",
+        help="Reset/delete generated world files and metadata"
+    )
+    reset_parser.add_argument(
+        "--osm-file",
+        type=str,
+        required=True,
+        help="Path to OSM file (used to determine which files to delete)"
+    )
+    reset_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Delete all generated files (worlds, metadata)"
+    )
+    reset_parser.set_defaults(func=reset_world)
+    
+    # list-streets command
+    list_streets_parser = subparsers.add_parser(
+        "list-streets",
+        help="List all streets/roads from OSM file or roads.json"
+    )
+    list_streets_parser.add_argument(
+        "--osm-file",
+        type=str,
+        default=None,
+        help="Path to OSM file"
+    )
+    list_streets_parser.add_argument(
+        "--roads-file",
+        type=str,
+        default=None,
+        help="Path to roads.json file (alternative to --osm-file)"
+    )
+    list_streets_parser.add_argument(
+        "--named-only",
+        action="store_true",
+        help="Show only named streets"
+    )
+    list_streets_parser.set_defaults(func=list_streets)
+    
+    # spawn-pose command
+    spawn_pose_parser = subparsers.add_parser(
+        "spawn-pose",
+        help="Get spawn point pose by ID"
+    )
+    spawn_pose_parser.add_argument(
+        "--spawn-file",
+        type=str,
+        required=True,
+        help="Path to spawn_points.yaml file"
+    )
+    spawn_pose_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="Spawn point ID"
+    )
+    spawn_pose_parser.set_defaults(func=spawn_pose)
     
     args = parser.parse_args()
     
