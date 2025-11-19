@@ -5,10 +5,12 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Optional
+import json
 
 # Handle both package and direct execution
 try:
     from .gis_projection import project_to_enu, create_enu_from_osm, ENUProjection
+    from .road_extractor import extract_road_metadata, extract_and_save_road_metadata
 except ImportError:
     # If running as script, add src directory to path
     import os
@@ -16,6 +18,8 @@ except ImportError:
     src_dir = os.path.join(script_dir, '..', '..')
     sys.path.insert(0, os.path.abspath(src_dir))
     from osm_city_pipeline.gis_projection import project_to_enu, create_enu_from_osm, ENUProjection
+    from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
+    from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
 
 
 def test_projection(args):
@@ -82,6 +86,50 @@ def test_projection(args):
         return 1
 
 
+def extract_roads(args):
+    """Extract roads from OSM file and save metadata."""
+    osm_file = args.osm_file
+    output_file = args.output
+    
+    if output_file is None:
+        # Default output: <osm_file>_metadata.json
+        osm_path = Path(osm_file)
+        output_file = str(osm_path.parent / f"{osm_path.stem}_metadata.json")
+    
+    try:
+        print(f"Extracting roads from: {osm_file}")
+        print(f"Output will be saved to: {output_file}")
+        print("")
+        
+        # Extract metadata
+        metadata = extract_and_save_road_metadata(osm_file, output_file)
+        
+        # Display summary
+        summary = metadata['summary']
+        print("="*60)
+        print("Road Extraction Summary")
+        print("="*60)
+        print(f"Total highways: {summary['total_highways']}")
+        print(f"Total intersections: {summary['total_intersections']}")
+        print(f"Total lane centerlines: {summary['total_lane_centerlines']}")
+        print(f"Named roads: {summary['named_roads']}")
+        print("")
+        print("Highway types:")
+        for hw_type, count in sorted(summary['highway_types'].items()):
+            print(f"  {hw_type}: {count}")
+        print("")
+        print(f"Metadata saved to: {output_file}")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error during road extraction: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
@@ -133,6 +181,25 @@ def main():
         help="Longitude of projection center (alternative to --osm-file)"
     )
     test_parser.set_defaults(func=test_projection)
+    
+    # extract-roads command
+    extract_parser = subparsers.add_parser(
+        "extract-roads",
+        help="Extract roads, highways, intersections, and lane centerlines from OSM file"
+    )
+    extract_parser.add_argument(
+        "--osm-file",
+        type=str,
+        required=True,
+        help="Path to OSM file"
+    )
+    extract_parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Path to output JSON file (default: <osm_file>_metadata.json)"
+    )
+    extract_parser.set_defaults(func=extract_roads)
     
     args = parser.parse_args()
     

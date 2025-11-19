@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python GIS dependencies
 # Use --break-system-packages as we're in a container environment
-RUN pip3 install --no-cache-dir --break-system-packages pyproj
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pyproj \
+    osmium \
+    shapely
 
 # Initialize rosdep
 RUN rosdep update || true
