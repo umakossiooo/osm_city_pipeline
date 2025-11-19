@@ -11,6 +11,7 @@ import json
 try:
     from .gis_projection import project_to_enu, create_enu_from_osm, ENUProjection
     from .road_extractor import extract_road_metadata, extract_and_save_road_metadata
+    from .sdf_generator import generate_sdf_world
 except ImportError:
     # If running as script, add src directory to path
     import os
@@ -19,6 +20,7 @@ except ImportError:
     sys.path.insert(0, os.path.abspath(src_dir))
     from osm_city_pipeline.gis_projection import project_to_enu, create_enu_from_osm, ENUProjection
     from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
+    from osm_city_pipeline.sdf_generator import generate_sdf_world
     from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
 
 
@@ -130,6 +132,57 @@ def extract_roads(args):
         return 1
 
 
+def generate_world(args):
+    """Generate Gazebo Harmonic SDF world from OSM file."""
+    osm_file = args.osm_file
+    output_file = args.output
+    world_name = args.world_name
+    
+    if output_file is None:
+        # Default output: worlds/<osm_file_name>.sdf
+        osm_path = Path(osm_file)
+        worlds_dir = Path('worlds')
+        worlds_dir.mkdir(exist_ok=True)
+        output_file = str(worlds_dir / f"{osm_path.stem}.sdf")
+    
+    try:
+        print(f"Generating Gazebo world from: {osm_file}")
+        print(f"Output will be saved to: {output_file}")
+        print("")
+        
+        # Delete old file if exists (RULE 4: regenerate)
+        output_path = Path(output_file)
+        if output_path.exists():
+            print(f"Removing old world file: {output_file}")
+            output_path.unlink()
+        
+        # Generate SDF world
+        generate_sdf_world(osm_file, output_file, world_name)
+        
+        print("="*60)
+        print("World Generation Summary")
+        print("="*60)
+        print(f"World file: {output_file}")
+        print(f"World name: {world_name}")
+        print(f"File size: {output_path.stat().st_size} bytes")
+        print("")
+        print("World includes:")
+        print("  - Grey drivable roads")
+        print("  - Extruded buildings")
+        print("  - Parks and green areas")
+        print("  - Sidewalks")
+        print("  - Default camera pose")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error during world generation: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
@@ -200,6 +253,31 @@ def main():
         help="Path to output JSON file (default: <osm_file>_metadata.json)"
     )
     extract_parser.set_defaults(func=extract_roads)
+    
+    # generate-world command
+    world_parser = subparsers.add_parser(
+        "generate-world",
+        help="Generate Gazebo Harmonic SDF world from OSM file"
+    )
+    world_parser.add_argument(
+        "--osm-file",
+        type=str,
+        required=True,
+        help="Path to OSM file"
+    )
+    world_parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Path to output SDF world file (default: worlds/<osm_file_name>.sdf)"
+    )
+    world_parser.add_argument(
+        "--world-name",
+        type=str,
+        default="osm_city",
+        help="Name of the world (default: osm_city)"
+    )
+    world_parser.set_defaults(func=generate_world)
     
     args = parser.parse_args()
     
