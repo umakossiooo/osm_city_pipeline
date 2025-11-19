@@ -144,6 +144,7 @@ def generate_world(args):
     osm_file = args.osm_file
     output_file = args.output
     world_name = args.world_name
+    use_enhanced = getattr(args, 'enhanced', True)  # Default to enhanced if available
     
     if output_file is None:
         # Default output: worlds/<osm_file_name>.sdf
@@ -163,8 +164,47 @@ def generate_world(args):
             print(f"Removing old world file: {output_file}")
             output_path.unlink()
         
-        # Generate SDF world
-        generate_sdf_world(osm_file, output_file, world_name)
+        # Try enhanced generation first (with OSM2World mesh)
+        if use_enhanced:
+            try:
+                try:
+                    from .sdf_generator_enhanced import generate_enhanced_sdf_world
+                except ImportError:
+                    from osm_city_pipeline.sdf_generator_enhanced import generate_enhanced_sdf_world
+                
+                # Determine model name from OSM file
+                osm_path = Path(osm_file)
+                model_name = osm_path.stem + "_3d"
+                
+                # Check if model exists
+                script_dir = Path(__file__).parent.parent.parent
+                model_dir = script_dir / "models" / model_name
+                
+                if model_dir.exists():
+                    print("✅ Using enhanced generation with OSM2World mesh")
+                    print(f"   Model: {model_name}")
+                    generate_enhanced_sdf_world(
+                        osm_file, output_file, model_name, world_name, use_osm2world=True
+                    )
+                else:
+                    print("⚠️  Enhanced model not found, generating mesh first...")
+                    print(f"   Model directory: {model_dir}")
+                    print("   Run: ./scripts/convert_with_osm2world.sh <osm_file> <model_name>")
+                    print("   Falling back to basic generation...")
+                    raise FileNotFoundError("Model not found")
+                    
+            except (ImportError, FileNotFoundError) as e:
+                print(f"⚠️  Enhanced generation not available: {e}")
+                print("   Using basic generation instead...")
+                use_enhanced = False
+        
+        # Fallback to basic generation
+        if not use_enhanced:
+            try:
+                from .sdf_generator import generate_sdf_world
+            except ImportError:
+                from osm_city_pipeline.sdf_generator import generate_sdf_world
+            generate_sdf_world(osm_file, output_file, world_name)
         
         print("="*60)
         print("World Generation Summary")
@@ -173,11 +213,17 @@ def generate_world(args):
         print(f"World name: {world_name}")
         print(f"File size: {output_path.stat().st_size} bytes")
         print("")
-        print("World includes:")
-        print("  - Grey drivable roads")
-        print("  - Extruded buildings")
-        print("  - Parks and green areas")
-        print("  - Sidewalks")
+        if use_enhanced:
+            print("World includes:")
+            print("  - Detailed 3D mesh (terrain, buildings, roads, vegetation)")
+            print("  - Textures and materials from OSM2World")
+            print("  - Road coordinates preserved for navigation")
+        else:
+            print("World includes:")
+            print("  - Grey drivable roads")
+            print("  - Extruded buildings")
+            print("  - Parks and green areas")
+            print("  - Sidewalks")
         print("  - Default camera pose")
         print("="*60)
         
@@ -369,11 +415,13 @@ def reset_world(args):
     try:
         from pathlib import Path
         import os
+        import shutil
         
         osm_path = Path(osm_file)
         base_name = osm_path.stem
         
         deleted_files = []
+        deleted_dirs = []
         
         # Delete world file
         world_file = Path('worlds') / f"{base_name}.sdf"
@@ -394,6 +442,20 @@ def reset_world(args):
             spawn_file.unlink()
             deleted_files.append(str(spawn_file))
             print(f"Deleted: {spawn_file}")
+        
+        # Delete model directory (OSM2World conversion output)
+        model_dir = Path('models') / f"{base_name}_3d"
+        if model_dir.exists():
+            shutil.rmtree(model_dir)
+            deleted_dirs.append(str(model_dir))
+            print(f"Deleted directory: {model_dir}")
+        
+        # Delete output directory (OSM2World OBJ files)
+        output_dir = Path('outputs') / f"{base_name}_3d"
+        if output_dir.exists():
+            shutil.rmtree(output_dir)
+            deleted_dirs.append(str(output_dir))
+            print(f"Deleted directory: {output_dir}")
         
         # Delete debug files
         debug_camera = Path('worlds') / "debug_camera.sdf"
@@ -430,12 +492,32 @@ def reset_world(args):
                         f.unlink()
                         deleted_files.append(str(f))
                         print(f"Deleted: {f}")
+            
+            # Delete all model directories
+            models_dir = Path('models')
+            if models_dir.exists():
+                for d in models_dir.iterdir():
+                    if d.is_dir() and d not in [Path(p) for p in deleted_dirs]:
+                        shutil.rmtree(d)
+                        deleted_dirs.append(str(d))
+                        print(f"Deleted directory: {d}")
+            
+            # Delete all output directories
+            outputs_dir = Path('outputs')
+            if outputs_dir.exists():
+                for d in outputs_dir.iterdir():
+                    if d.is_dir() and d not in [Path(p) for p in deleted_dirs]:
+                        shutil.rmtree(d)
+                        deleted_dirs.append(str(d))
+                        print(f"Deleted directory: {d}")
         
         print("")
         print("="*60)
         print("Reset Complete")
         print("="*60)
         print(f"Deleted {len(deleted_files)} file(s)")
+        if deleted_dirs:
+            print(f"Deleted {len(deleted_dirs)} directory/directories")
         print("="*60)
         
         return 0
@@ -550,6 +632,103 @@ def spawn_pose(args):
         return 1
 
 
+def spawn_on_street(args):
+    """Get spawn points for a specific street."""
+    try:
+        import yaml
+        
+        with open(args.spawn_file, 'r') as f:
+            spawn_data = yaml.safe_load(f)
+        
+        spawn_points = spawn_data['spawn_points']
+        street_name = args.street_name
+        
+        # Find spawn points on this street
+        matching = []
+        for sp in spawn_points:
+            road_name = sp.get('road_name', '')
+            if street_name.lower() in road_name.lower() or road_name.lower() in street_name.lower():
+                matching.append(sp)
+        
+        if not matching:
+            print(f"❌ No spawn points found for street: {street_name}")
+            print("\nAvailable streets:")
+            streets = set()
+            for sp in spawn_points:
+                name = sp.get('road_name', 'Unnamed')
+                if name:
+                    streets.add(name)
+            for street in sorted(streets)[:20]:
+                print(f"  - {street}")
+            if len(streets) > 20:
+                print(f"  ... and {len(streets) - 20} more")
+            return 1
+        
+        print("="*60)
+        print(f"Spawn Points on: {matching[0].get('road_name', street_name)}")
+        print("="*60)
+        print(f"Total spawn points: {len(matching)}")
+        print("")
+        
+        if args.all:
+            for sp in matching:
+                pos = sp['position']
+                orient = sp.get('orientation', {})
+                yaw = orient.get('yaw', 0.0)
+                print(f"Spawn Point {sp['id']}:")
+                print(f"  Position: ({pos['east']:.3f}, {pos['north']:.3f}, {pos['up']:.3f})")
+                print(f"  Yaw: {yaw:.3f} rad ({yaw * 180 / 3.14159:.1f} deg)")
+                print(f"  Gazebo Pose: {pos['east']:.6f} {pos['north']:.6f} {pos['up']:.6f} 0 0 {yaw:.6f}")
+                print()
+        else:
+            # Show first, middle, and last
+            print("First spawn point:")
+            sp = matching[0]
+            pos = sp['position']
+            orient = sp.get('orientation', {})
+            yaw = orient.get('yaw', 0.0)
+            print(f"  ID: {sp['id']}")
+            print(f"  Position: ({pos['east']:.3f}, {pos['north']:.3f}, {pos['up']:.3f})")
+            print(f"  Yaw: {yaw:.3f} rad ({yaw * 180 / 3.14159:.1f} deg)")
+            print(f"  Gazebo Pose: {pos['east']:.6f} {pos['north']:.6f} {pos['up']:.6f} 0 0 {yaw:.6f}")
+            print()
+            
+            if len(matching) > 1:
+                print("Middle spawn point:")
+                sp = matching[len(matching) // 2]
+                pos = sp['position']
+                orient = sp.get('orientation', {})
+                yaw = orient.get('yaw', 0.0)
+                print(f"  ID: {sp['id']}")
+                print(f"  Position: ({pos['east']:.3f}, {pos['north']:.3f}, {pos['up']:.3f})")
+                print(f"  Yaw: {yaw:.3f} rad ({yaw * 180 / 3.14159:.1f} deg)")
+                print(f"  Gazebo Pose: {pos['east']:.6f} {pos['north']:.6f} {pos['up']:.6f} 0 0 {yaw:.6f}")
+                print()
+            
+            if len(matching) > 2:
+                print("Last spawn point:")
+                sp = matching[-1]
+                pos = sp['position']
+                orient = sp.get('orientation', {})
+                yaw = orient.get('yaw', 0.0)
+                print(f"  ID: {sp['id']}")
+                print(f"  Position: ({pos['east']:.3f}, {pos['north']:.3f}, {pos['up']:.3f})")
+                print(f"  Yaw: {yaw:.3f} rad ({yaw * 180 / 3.14159:.1f} deg)")
+                print(f"  Gazebo Pose: {pos['east']:.6f} {pos['north']:.6f} {pos['up']:.6f} 0 0 {yaw:.6f}")
+                print()
+            
+            print(f"Use --all to see all {len(matching)} spawn points on this street")
+        
+        print("="*60)
+        return 0
+    
+    except Exception as e:
+        print(f"Error getting spawn points for street: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
@@ -643,6 +822,18 @@ def main():
         type=str,
         default="osm_city",
         help="Name of the world (default: osm_city)"
+    )
+    world_parser.add_argument(
+        "--enhanced",
+        action="store_true",
+        default=True,
+        help="Use enhanced generation with OSM2World mesh (default: True)"
+    )
+    world_parser.add_argument(
+        "--no-enhanced",
+        dest="enhanced",
+        action="store_false",
+        help="Use basic generation without OSM2World mesh"
     )
     world_parser.set_defaults(func=generate_world)
     
@@ -768,6 +959,18 @@ def main():
         default="osm_city",
         help="Name of the world (default: osm_city)"
     )
+    generate_parser.add_argument(
+        "--enhanced",
+        action="store_true",
+        default=True,
+        help="Use enhanced generation with OSM2World mesh (default: True)"
+    )
+    generate_parser.add_argument(
+        "--no-enhanced",
+        dest="enhanced",
+        action="store_false",
+        help="Use basic generation without OSM2World mesh"
+    )
     generate_parser.set_defaults(func=generate_world)
     
     # reset command
@@ -830,6 +1033,30 @@ def main():
         help="Spawn point ID"
     )
     spawn_pose_parser.set_defaults(func=spawn_pose)
+    
+    # spawn-on-street command
+    spawn_street_parser = subparsers.add_parser(
+        "spawn-on-street",
+        help="Get spawn points for a specific street/road"
+    )
+    spawn_street_parser.add_argument(
+        "--spawn-file",
+        type=str,
+        required=True,
+        help="Path to spawn_points.yaml file"
+    )
+    spawn_street_parser.add_argument(
+        "--street-name",
+        type=str,
+        required=True,
+        help="Name of the street (partial match supported)"
+    )
+    spawn_street_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Show all spawn points on this street (default: show first, middle, last)"
+    )
+    spawn_street_parser.set_defaults(func=spawn_on_street)
     
     args = parser.parse_args()
     

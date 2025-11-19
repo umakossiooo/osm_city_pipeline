@@ -8,12 +8,14 @@ services:
       - .:/workspace/osm_city_pipeline
       - ./worlds:/workspace/osm_city_pipeline/worlds
       - ./maps:/workspace/osm_city_pipeline/maps
+      - ../map_osm_converter/osm2world:/opt/osm2world:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - DISPLAY=${DISPLAY:-:0}
       - ROS_DISTRO=jazzy
       - QT_X11_NO_MITSHM=1
       - XAUTHORITY=${XAUTHORITY:-}
+      - GZ_SIM_RESOURCE_PATH=/workspace/osm_city_pipeline/models:/workspace/models_osm2world
     network_mode: host
     privileged: true
     stdin_open: true

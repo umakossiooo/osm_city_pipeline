@@ -13,13 +13,45 @@ cd /workspace/osm_city_pipeline
 
 ## Workflow
 
-### 1. Generate World
+### Option A: Enhanced Generation (Recommended)
+
+Generate a detailed 3D world with OSM2World mesh (buildings, terrain, vegetation, textures):
 
 ```bash
-./scripts/osm-city generate --osm-file maps/bari.osm
+# Step 1: Generate enhanced world (converts OSM to mesh + creates SDF)
+./scripts/generate_enhanced_world.sh maps/bari.osm
+
+# Or manually:
+# Step 1a: Convert OSM to detailed 3D mesh
+./scripts/convert_with_osm2world.sh maps/bari.osm bari_3d
+
+# Step 1b: Generate enhanced SDF world
+./scripts/osm-city generate --osm-file maps/bari.osm --enhanced
 ```
 
-Output: `worlds/bari.sdf`
+**Output:**
+- `worlds/bari.sdf` - Enhanced world with detailed 3D mesh
+- `models/bari_3d/` - Detailed 3D model with textures
+- `maps/bari_roads.json` - Road coordinates (preserved for navigation)
+- `maps/bari_spawn_points.yaml` - Spawn points (preserved for navigation)
+
+**Features:**
+- ✅ Detailed 3D terrain with elevation
+- ✅ Textured buildings with windows
+- ✅ Vegetation (trees in parks/forests)
+- ✅ Realistic road textures (asphalt, concrete)
+- ✅ Road coordinates preserved for robot navigation
+- ✅ Proper alignment and proportions
+
+### Option B: Basic Generation
+
+Generate a simple world with basic geometry (faster, less detailed):
+
+```bash
+./scripts/osm-city generate --osm-file maps/bari.osm --no-enhanced
+```
+
+Output: `worlds/bari.sdf` (basic geometry: boxes for roads/buildings)
 
 ### 2. Export Metadata
 
