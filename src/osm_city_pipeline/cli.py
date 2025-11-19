@@ -12,6 +12,7 @@ try:
     from .gis_projection import project_to_enu, create_enu_from_osm, ENUProjection
     from .road_extractor import extract_road_metadata, extract_and_save_road_metadata
     from .sdf_generator import generate_sdf_world
+    from .metadata_exporter import export_all_metadata, export_roads_json, export_spawn_points_yaml
 except ImportError:
     # If running as script, add src directory to path
     import os
@@ -21,6 +22,7 @@ except ImportError:
     from osm_city_pipeline.gis_projection import project_to_enu, create_enu_from_osm, ENUProjection
     from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
     from osm_city_pipeline.sdf_generator import generate_sdf_world
+    from osm_city_pipeline.metadata_exporter import export_all_metadata, export_roads_json, export_spawn_points_yaml
     from osm_city_pipeline.road_extractor import extract_road_metadata, extract_and_save_road_metadata
 
 
@@ -183,6 +185,67 @@ def generate_world(args):
         return 1
 
 
+def export_metadata(args):
+    """Export roads.json and spawn_points.yaml metadata."""
+    osm_file = args.osm_file
+    roads_output = args.roads_output
+    spawn_output = args.spawn_output
+    spawn_spacing = args.spawn_spacing
+    
+    # Default output paths
+    if roads_output is None:
+        osm_path = Path(osm_file)
+        maps_dir = Path('maps')
+        maps_dir.mkdir(exist_ok=True)
+        roads_output = str(maps_dir / f"{osm_path.stem}_roads.json")
+    
+    if spawn_output is None:
+        osm_path = Path(osm_file)
+        maps_dir = Path('maps')
+        maps_dir.mkdir(exist_ok=True)
+        spawn_output = str(maps_dir / f"{osm_path.stem}_spawn_points.yaml")
+    
+    try:
+        print(f"Exporting metadata from: {osm_file}")
+        print(f"Roads JSON: {roads_output}")
+        print(f"Spawn points YAML: {spawn_output}")
+        print(f"Spawn spacing: {spawn_spacing}m")
+        print("")
+        
+        # Delete old files if they exist (RULE 4: regenerate)
+        for output_file in [roads_output, spawn_output]:
+            output_path = Path(output_file)
+            if output_path.exists():
+                print(f"Removing old file: {output_file}")
+                output_path.unlink()
+        
+        # Export metadata
+        roads_data, spawn_points = export_all_metadata(
+            osm_file, roads_output, spawn_output, spawn_spacing
+        )
+        
+        # Display summary
+        print("="*60)
+        print("Metadata Export Summary")
+        print("="*60)
+        print(f"Roads exported: {len(roads_data['roads'])}")
+        print(f"Spawn points generated: {len(spawn_points)}")
+        print(f"Projection center: ({roads_data['projection_center']['latitude']:.6f}, {roads_data['projection_center']['longitude']:.6f})")
+        print("")
+        print(f"Files saved:")
+        print(f"  - {roads_output}")
+        print(f"  - {spawn_output}")
+        print("="*60)
+        
+        return 0
+    
+    except Exception as e:
+        print(f"Error during metadata export: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
@@ -278,6 +341,37 @@ def main():
         help="Name of the world (default: osm_city)"
     )
     world_parser.set_defaults(func=generate_world)
+    
+    # export-metadata command
+    metadata_parser = subparsers.add_parser(
+        "export-metadata",
+        help="Export roads.json and spawn_points.yaml metadata files"
+    )
+    metadata_parser.add_argument(
+        "--osm-file",
+        type=str,
+        required=True,
+        help="Path to OSM file"
+    )
+    metadata_parser.add_argument(
+        "--roads-output",
+        type=str,
+        default=None,
+        help="Path to output roads.json file (default: maps/<osm_file_name>_roads.json)"
+    )
+    metadata_parser.add_argument(
+        "--spawn-output",
+        type=str,
+        default=None,
+        help="Path to output spawn_points.yaml file (default: maps/<osm_file_name>_spawn_points.yaml)"
+    )
+    metadata_parser.add_argument(
+        "--spawn-spacing",
+        type=float,
+        default=10.0,
+        help="Spacing between spawn points in meters (default: 10.0)"
+    )
+    metadata_parser.set_defaults(func=export_metadata)
     
     args = parser.parse_args()
     
