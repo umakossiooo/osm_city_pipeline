@@ -1,42 +1,26 @@
-FROM ubuntu:24.04
+# Dockerfile for ROS 2 Jazzy + Gazebo Harmonic
+FROM osrf/ros:jazzy-desktop-full
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    TZ=UTC \
-    ROS_DISTRO=jazzy
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ROS_DISTRO=jazzy
 
-# Base dependencies and ROS 2 Jazzy prerequisites
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
-        gnupg2 \
-        lsb-release \
-        ca-certificates \
-        python3 \
-        python3-pip \
-        python3-dev \
-        python3-lxml \
-        python3-numpy \
-        python3-scipy \
-        python3-pyproj \
-        python3-shapely \
-        libgeos-dev \
-        libproj-dev \
-        proj-data \
-        proj-bin \
-        build-essential \
-        git \
+# Install Gazebo Harmonic
+RUN apt-get update && apt-get install -y \
+    gazebo-harmonic \
+    python3-pip \
+    python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
-       > /etc/apt/sources.list.d/ros2.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends ros-jazzy-ros-base \
-    && rm -rf /var/lib/apt/lists/*
+# Initialize rosdep
+RUN rosdep update || true
 
-WORKDIR /app
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Set working directory
+WORKDIR /workspace/osm_city_pipeline
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/data/example.osm"]
+# Create a user-friendly environment
+ENV SHELL=/bin/bash
+
+# Default command
+CMD ["/bin/bash"]
+
