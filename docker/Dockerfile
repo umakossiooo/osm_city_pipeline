@@ -1,10 +1,10 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=UTC \
     ROS_DISTRO=jazzy
 
-# Base dependencies and ROS 2 Jazzy
+# Base dependencies and ROS 2 Jazzy prerequisites
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
@@ -17,6 +17,8 @@ RUN apt-get update \
         python3-lxml \
         python3-numpy \
         python3-scipy \
+        python3-pyproj \
+        python3-shapely \
         libgeos-dev \
         libproj-dev \
         proj-data \
@@ -31,14 +33,6 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
     && apt-get update \
     && apt-get install -y --no-install-recommends ros-jazzy-ros-base \
     && rm -rf /var/lib/apt/lists/*
-
-RUN python3 -m pip install --no-cache-dir \
-        pyproj \
-        shapely \
-        pyyaml \
-        lxml \
-        numpy \
-        scipy
 
 WORKDIR /app
 COPY entrypoint.sh /entrypoint.sh

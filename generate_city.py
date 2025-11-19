@@ -7,9 +7,10 @@ import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 import xml.etree.ElementTree as ET
 
+import numpy as np
 from pyproj import Transformer
 from shapely.geometry import Polygon
 
@@ -128,7 +129,6 @@ class CityBuilder:
         self.camera_file = output_root / "camera_views.json"
         self.nodes: Dict[int, Tuple[float, float]] = {}
         self.ways: List[Way] = []
-        self.node_tags: Dict[int, Dict[str, str]] = {}
         self.node_usage: Dict[int, int] = {}
         self.frame: Optional[CoordinateFrame] = None
         self.gazebo_nodes: Dict[int, Tuple[float, float]] = {}
@@ -169,9 +169,6 @@ class CityBuilder:
             lon = float(node.attrib["lon"])
             self.nodes[node_id] = (lat, lon)
             self.node_usage[node_id] = 0
-            tags = {tag.attrib["k"]: tag.attrib["v"] for tag in node.findall("tag")}
-            if tags:
-                self.node_tags[node_id] = tags
         for way_elem in root.findall("way"):
             node_refs = [int(nd.attrib["ref"]) for nd in way_elem.findall("nd") if nd.attrib.get("ref")]
             tags = {tag.attrib["k"]: tag.attrib["v"] for tag in way_elem.findall("tag")}
@@ -230,44 +227,32 @@ class CityBuilder:
         return segments
 
     def _slice_polyline(self, points: Sequence[Tuple[float, float]]) -> List[Tuple[Tuple[float, float], Tuple[float, float]]]:
-        if len(points) < 2:
-            return []
-        cumulative = [0.0]
-        for idx in range(1, len(points)):
-            cumulative.append(cumulative[-1] + math.dist(points[idx - 1], points[idx]))
-        total_length = cumulative[-1]
-        if total_length < MIN_SEGMENT_LENGTH:
-            return [(points[0], points[-1])]
-        segment_count = max(1, math.ceil(total_length / MAX_SEGMENT_LENGTH))
-        while segment_count > 1 and total_length / segment_count < MIN_SEGMENT_LENGTH:
-            segment_count -= 1
-        step = total_length / segment_count
-
-        def point_at(distance: float) -> Tuple[float, float]:
-            if distance <= 0:
-                return points[0]
-            if distance >= total_length:
-                return points[-1]
-            for idx in range(1, len(points)):
-                if distance <= cumulative[idx]:
-                    seg_len = cumulative[idx] - cumulative[idx - 1]
-                    if seg_len == 0:
-                        continue
-                    ratio = (distance - cumulative[idx - 1]) / seg_len
-                    x0, y0 = points[idx - 1]
-                    x1, y1 = points[idx]
-                    return (x0 + ratio * (x1 - x0), y0 + ratio * (y1 - y0))
-            return points[-1]
-
-        cut_distances = [step * i for i in range(segment_count)] + [total_length]
+        target = (MIN_SEGMENT_LENGTH + MAX_SEGMENT_LENGTH) / 2.0
         segments = []
-        for start_d, end_d in zip(cut_distances[:-1], cut_distances[1:]):
-            if end_d - start_d < MIN_SEGMENT_LENGTH and segments:
-                # merge short tail into previous by extending end point
-                prev_start, _ = segments[-1]
-                segments[-1] = (prev_start, point_at(end_d))
+        if len(points) < 2:
+            return segments
+        cursor = points[0]
+        acc_len = 0.0
+        for next_pt in points[1:]:
+            seg_len = math.dist(cursor, next_pt)
+            if seg_len == 0:
+                continue
+            start_pt = cursor
+            end_pt = next_pt
+            acc_len += seg_len
+            if acc_len >= MIN_SEGMENT_LENGTH:
+                segments.append((start_pt, end_pt))
+                acc_len = 0.0
+                cursor = next_pt
+                continue
+            if acc_len >= target:
+                segments.append((start_pt, end_pt))
+                acc_len = 0.0
+                cursor = next_pt
             else:
-                segments.append((point_at(start_d), point_at(end_d)))
+                cursor = next_pt
+        if not segments:
+            segments.append((points[0], points[-1]))
         return segments
 
     def _road_width(self, tags: Dict[str, str]) -> float:
@@ -392,7 +377,17 @@ class CityBuilder:
         return trees
 
     def _node_tags(self, node_id: int) -> Dict[str, str]:
-        return self.node_tags.get(node_id, {})
+        # Build a lookup once lazily
+        if not hasattr(self, "_node_tag_index"):
+            self._node_tag_index: Dict[int, Dict[str, str]] = {}
+            tree = ET.parse(self.osm_file)
+            root = tree.getroot()
+            for node in root.findall("node"):
+                node_id_local = int(node.attrib["id"])
+                tags = {tag.attrib["k"]: tag.attrib["v"] for tag in node.findall("tag")}
+                if tags:
+                    self._node_tag_index[node_id_local] = tags
+        return self._node_tag_index.get(node_id, {})
 
     def _write_ground_plane(self) -> None:
         name = "ground_plane"
@@ -761,7 +756,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     if not osm_path.exists():
         raise FileNotFoundError(osm_path)
     output_dir = args.output_dir.resolve()
-    builder = CityBuilder(osm_path=osm_path, output_root=output_dir)
+    builder = CityBuilder(osm_file=osm_path, output_root=output_dir)
     builder.run()
 
 

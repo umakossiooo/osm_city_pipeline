@@ -27,7 +27,9 @@ chmod +x "$APP_DIR/generate_city.py"
 
 # Make sure ROS 2 environment variables are available for downstream tools
 if [[ -f "/opt/ros/jazzy/setup.bash" ]]; then
+  set +u
   source /opt/ros/jazzy/setup.bash
+  set -u
 fi
 
 python3 /app/generate_city.py "$OSM_PATH" --output-dir "$OUTPUT_DIR"
