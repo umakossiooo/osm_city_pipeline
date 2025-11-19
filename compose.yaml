@@ -6,15 +6,17 @@ services:
     container_name: osm_city_pipeline
     volumes:
       - .:/workspace/osm_city_pipeline
-      - worlds_data:/workspace/osm_city_pipeline/worlds
+      - ./worlds:/workspace/osm_city_pipeline/worlds
+      - ./maps:/workspace/osm_city_pipeline/maps
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - DISPLAY=${DISPLAY:-:0}
       - ROS_DISTRO=jazzy
+      - QT_X11_NO_MITSHM=1
+      - XAUTHORITY=${XAUTHORITY:-}
     network_mode: host
     privileged: true
     stdin_open: true
     tty: true
 
-volumes:
-  worlds_data:
 

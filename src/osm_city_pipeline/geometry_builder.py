@@ -125,7 +125,7 @@ def build_sidewalk_geometry(highway: Dict, enu_proj: ENUProjection, width: float
 
 def extract_buildings(osm_file_path: str) -> List[Dict]:
     """
-    Extract buildings from OSM file.
+    Extract buildings from OSM file (both ways and relations).
     
     Args:
         osm_file_path: Path to OSM file
@@ -136,8 +136,37 @@ def extract_buildings(osm_file_path: str) -> List[Dict]:
     nodes, ways, relations = parse_osm_file(osm_file_path)
     
     buildings = []
+    processed_way_ids = set()  # Track ways already processed from relations
     
+    # First, process building relations (multipolygons)
+    for rel_id, rel_data in relations.items():
+        tags = rel_data['tags']
+        
+        # Check if it's a building relation
+        if 'building' in tags or tags.get('type') == 'multipolygon':
+            # Extract outer ways from relation
+            for member in rel_data['members']:
+                if member['type'] == 'way' and member['role'] in ['outer', '']:
+                    way_id = member['ref']
+                    if way_id in ways:
+                        processed_way_ids.add(way_id)
+                        coordinates = get_way_coordinates(way_id, {way_id: ways[way_id]}, nodes)
+                        if coordinates and len(coordinates) >= 3:
+                            # Merge tags from relation and way
+                            way_tags = ways[way_id]['tags'].copy()
+                            way_tags.update(tags)  # Relation tags take precedence
+                            buildings.append({
+                                'way_id': way_id,
+                                'relation_id': rel_id,
+                                'coordinates': coordinates,
+                                'tags': way_tags
+                            })
+    
+    # Then, process standalone building ways (not in relations)
     for way_id, way_data in ways.items():
+        if way_id in processed_way_ids:
+            continue  # Already processed from relation
+        
         tags = way_data['tags']
         
         # Check if it's a building

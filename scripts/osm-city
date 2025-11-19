@@ -1,0 +1,7 @@
+#!/bin/bash
+# Wrapper script for osm-city CLI
+
+cd /workspace/osm_city_pipeline
+export PYTHONPATH=/workspace/osm_city_pipeline/src
+python3 src/osm_city_pipeline/cli.py "$@"
+
