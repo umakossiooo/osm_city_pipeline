@@ -23,7 +23,7 @@ fi
 # Determine world name from OSM file if not provided
 if [ -z "$WORLD_NAME" ]; then
     OSM_STEM=$(basename "$INPUT_OSM" .osm)
-    WORLD_NAME="$OSM_STEM"
+    WORLD_NAME="${OSM_STEM}_world"
 fi
 
 echo "=========================================="
@@ -82,4 +82,33 @@ echo ""
 echo "To visualize in Gazebo:"
 echo "  export GZ_SIM_RESOURCE_PATH=\$GZ_SIM_RESOURCE_PATH:$(realpath "$PROJECT_ROOT/models")"
 echo "  gz sim worlds/${WORLD_NAME}.sdf"
+
+# Step 4: Sync outputs into the Ackermann stack (if available)
+ACKERMANN_DIR=$(realpath "$PROJECT_ROOT/../ackermann-vehicle-gzsim-ros2" 2>/dev/null || true)
+if [ -n "$ACKERMANN_DIR" ] && [ -d "$ACKERMANN_DIR/saye_description" ]; then
+    echo ""
+    echo "Step 4: Syncing with Ackermann stack..."
+
+    TARGET_WORLD_DIR="$ACKERMANN_DIR/saye_description/worlds"
+    mkdir -p "$TARGET_WORLD_DIR"
+    cp "worlds/${WORLD_NAME}.sdf" "$TARGET_WORLD_DIR/${WORLD_NAME}.sdf"
+    echo "  ➤ World copied to: $TARGET_WORLD_DIR/${WORLD_NAME}.sdf"
+
+    SOURCE_MODEL_DIR="$PROJECT_ROOT/models/$MODEL_NAME"
+    TARGET_MODEL_DIR="$ACKERMANN_DIR/saye_description/models/$MODEL_NAME"
+    if [ -d "$SOURCE_MODEL_DIR" ]; then
+        rm -rf "$TARGET_MODEL_DIR"
+        mkdir -p "$TARGET_MODEL_DIR"
+        cp -a "$SOURCE_MODEL_DIR/." "$TARGET_MODEL_DIR/"
+        echo "  ➤ Model synced to: $TARGET_MODEL_DIR"
+    else
+        echo "  ⚠️  Model directory not found: $SOURCE_MODEL_DIR"
+    fi
+
+    echo "✅ Ackermann stack world + model updated."
+else
+    echo ""
+    echo "ℹ️  Ackermann stack not detected next to this repo; skipping sync."
+    echo "    Expected directory: $PROJECT_ROOT/../ackermann-vehicle-gzsim-ros2"
+fi
 

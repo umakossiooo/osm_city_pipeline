@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.11">
-  <world name="bari">
+  <world name="bari_world">
     <physics type="ode" name="default">
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1.0</real_time_factor>

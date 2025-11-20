@@ -9,6 +9,9 @@ docker compose build
 docker compose up -d
 docker compose exec osm_city_pipeline bash
 cd /workspace/osm_city_pipeline
+
+# The compose file also mounts ../ackermann-vehicle-gzsim-ros2 so the newest
+# Bari world/model can be synced directly into the ROS 2 stack.
 ```
 
 ## Complete Workflow
@@ -22,7 +25,7 @@ Generate a detailed 3D world with OSM2World mesh (buildings, terrain, vegetation
 ```
 
 **Output:**
-- `worlds/bari.sdf` - Enhanced world with detailed 3D mesh
+- `worlds/bari_world.sdf` - Enhanced world with detailed 3D mesh (Ackermann-ready)
 - `models/bari_3d/` - Detailed 3D model with textures
 - `maps/bari_roads.json` - Road coordinates (preserved for navigation)
 - `maps/bari_spawn_points.yaml` - Spawn points (preserved for navigation)
@@ -60,13 +63,28 @@ source /opt/ros/jazzy/setup.bash
 export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:$(pwd)/models:$(pwd)/saye_description
 
 # View the world
-gz sim worlds/bari.sdf
+gz sim worlds/bari_world.sdf
 
 # View robot on street
 gz sim worlds/robot_center.sdf
 
 # Or use the launch script
 ./scripts/launch_gazebo.sh worlds/robot_center.sdf
+
+### 4. Sync with Ackermann Vehicle Stack
+
+When `../ackermann-vehicle-gzsim-ros2` is present (and mounted in the Docker
+container through `compose.yaml`), the workflow automatically copies:
+
+- `worlds/bari_world.sdf` → `ackermann-vehicle-gzsim-ros2/saye_description/worlds/`
+- `models/bari_3d/` → `ackermann-vehicle-gzsim-ros2/saye_description/models/`
+
+After running the generator, launch the stack with the latest map:
+
+```bash
+cd /workspace/ackermann-vehicle-gzsim-ros2
+ros2 launch saye_bringup saye_spawn.launch.py gui:=true
+```
 ```
 
 ## CLI Commands

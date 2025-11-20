@@ -3,7 +3,7 @@
 
 set -e
 
-WORLD_FILE="${1:-worlds/bari.sdf}"
+WORLD_FILE="${1:-worlds/bari_world.sdf}"
 
 if [ ! -f "$WORLD_FILE" ]; then
     echo "Error: World file not found: $WORLD_FILE"

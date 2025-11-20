@@ -423,12 +423,18 @@ def reset_world(args):
         deleted_files = []
         deleted_dirs = []
         
-        # Delete world file
-        world_file = Path('worlds') / f"{base_name}.sdf"
-        if world_file.exists():
-            world_file.unlink()
-            deleted_files.append(str(world_file))
-            print(f"Deleted: {world_file}")
+        # Delete world files (legacy <stem>.sdf and new <stem>_world.sdf)
+        world_candidates = [
+            Path('worlds') / f"{base_name}.sdf",
+            Path('worlds') / f"{base_name}_world.sdf"
+        ]
+        seen_worlds = set()
+        for world_file in world_candidates:
+            if world_file.exists() and world_file not in seen_worlds:
+                world_file.unlink()
+                deleted_files.append(str(world_file))
+                seen_worlds.add(world_file)
+                print(f"Deleted: {world_file}")
         
         # Delete metadata files
         roads_file = Path('maps') / f"{base_name}_roads.json"
