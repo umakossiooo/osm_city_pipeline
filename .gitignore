@@ -38,6 +38,27 @@ Thumbs.db
 *.log
 *.tmp
 
+# Generated world files (SDF)
+worlds/*.sdf
+!worlds/.gitkeep
+
+# Generated 3D models from OSM2World
+models/*/
+!models/.gitkeep
+
+# OSM2World output files (OBJ, MTL, textures)
+outputs/*/
+
+# Generated metadata files (keep .osm source files)
+maps/*_roads.json
+maps/*_spawn_points.yaml
+
+# Debug files
+worlds/debug_*.sdf
+
+# OSM2World temporary files
+osm2world/
+
 # Exclude parent directory repos
 ../ackermann-vehicle-gzsim-ros2/
 ../map_osm_converter/
