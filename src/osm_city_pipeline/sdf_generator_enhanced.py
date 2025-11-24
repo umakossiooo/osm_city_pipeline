@@ -63,7 +63,7 @@ def create_enhanced_sdf_world(
     plugin_sensors.set('filename', 'gz-sim-sensors-system')
     plugin_sensors.set('name', 'gz::sim::systems::Sensors')
     render_engine = ET.SubElement(plugin_sensors, 'render_engine')
-    render_engine.text = 'vulkan'
+    render_engine.text = 'ogre2'  # Use ogre2 instead of vulkan for better compatibility
     
     plugin_scene = ET.SubElement(world, 'plugin')
     plugin_scene.set('filename', 'gz-sim-scene-broadcaster-system')
@@ -85,6 +85,41 @@ def create_enhanced_sdf_world(
     background.text = '0.7 0.7 0.7 1'
     shadows = ET.SubElement(scene, 'shadows')
     shadows.text = 'true'
+    
+    # Add ground plane as safety net to prevent falling through void areas
+    # The OSM2World mesh may not cover all areas, so this provides collision
+    # for any gaps or areas outside the mesh bounds
+    ground_plane = ET.SubElement(world, 'model', name='ground_plane')
+    static = ET.SubElement(ground_plane, 'static')
+    static.text = 'true'
+    link = ET.SubElement(ground_plane, 'link', name='link')
+    collision = ET.SubElement(link, 'collision', name='collision')
+    geometry_coll = ET.SubElement(collision, 'geometry')
+    plane_coll = ET.SubElement(geometry_coll, 'plane')
+    normal = ET.SubElement(plane_coll, 'normal')
+    normal.text = '0 0 1'
+    size = ET.SubElement(plane_coll, 'size')
+    size.text = '2000 2000'  # Large enough to cover entire map area
+    visual = ET.SubElement(link, 'visual', name='visual')
+    geometry_vis = ET.SubElement(visual, 'geometry')
+    plane_vis = ET.SubElement(geometry_vis, 'plane')
+    normal_vis = ET.SubElement(plane_vis, 'normal')
+    normal_vis.text = '0 0 1'
+    size_vis = ET.SubElement(plane_vis, 'size')
+    size_vis.text = '2000 2000'
+    material = ET.SubElement(visual, 'material')
+    # Use light grey to match background and be less visible
+    # Position slightly below terrain mesh to act as safety net
+    ambient = ET.SubElement(material, 'ambient')
+    ambient.text = '0.85 0.85 0.85 1'
+    diffuse = ET.SubElement(material, 'diffuse')
+    diffuse.text = '0.9 0.9 0.9 1'
+    specular = ET.SubElement(material, 'specular')
+    specular.text = '0.5 0.5 0.5 1'
+    # Position ground plane well below terrain (at z=-1.0) to catch anything that falls
+    # through gaps in the mesh without interfering with normal terrain
+    pose_ground = ET.SubElement(ground_plane, 'pose')
+    pose_ground.text = '0 0 -1.0 0 0 0'
     
     # Include the detailed mesh model
     include = ET.SubElement(world, 'include')

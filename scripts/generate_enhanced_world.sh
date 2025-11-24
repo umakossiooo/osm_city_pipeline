@@ -34,13 +34,20 @@ echo "Model name: $MODEL_NAME"
 echo "World name: $WORLD_NAME"
 echo ""
 
-# Step 1: Convert OSM to OBJ using OSM2World
-echo "Step 1: Converting OSM to detailed 3D mesh..."
-if [ -f "$SCRIPT_DIR/convert_with_osm2world.sh" ]; then
-    bash "$SCRIPT_DIR/convert_with_osm2world.sh" "$INPUT_OSM" "$MODEL_NAME"
+# Step 1: Convert OSM to OBJ using OSM2World (skip if model already exists)
+MODEL_DIR="$PROJECT_ROOT/models/$MODEL_NAME"
+if [ -d "$MODEL_DIR" ]; then
+    echo "Step 1: Model already exists, skipping OSM2World conversion..."
+    echo "   Model: $MODEL_NAME"
+    echo "   Directory: $MODEL_DIR"
 else
-    echo "❌ convert_with_osm2world.sh not found!"
-    exit 1
+    echo "Step 1: Converting OSM to detailed 3D mesh..."
+    if [ -f "$SCRIPT_DIR/convert_with_osm2world.sh" ]; then
+        bash "$SCRIPT_DIR/convert_with_osm2world.sh" "$INPUT_OSM" "$MODEL_NAME"
+    else
+        echo "❌ convert_with_osm2world.sh not found!"
+        exit 1
+    fi
 fi
 
 # Step 2: Export road metadata (preserves coordinates)
