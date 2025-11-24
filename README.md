@@ -2,6 +2,8 @@
 
 Convert OpenStreetMap data to detailed Gazebo Harmonic worlds with precise road coordinates for robot navigation.
 
+Download the OSM2World 0.4.0 zip file from https://www.osm2world.org/download/, extract it and put it under the name of "osm2world"
+
 ## Setup
 
 ```bash
@@ -69,7 +71,7 @@ gz sim worlds/bari_world.sdf
 gz sim worlds/robot_center.sdf
 
 # Or use the launch script
-./scripts/launch_gazebo.sh worlds/robot_center.sdf
+./scripts/launch_gazebo.sh worlds/bari_world.sdf
 
 ### 4. Sync with Ackermann Vehicle Stack
 
