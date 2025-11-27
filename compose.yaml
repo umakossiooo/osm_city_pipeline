@@ -9,7 +9,7 @@ services:
       - ./worlds:/workspace/osm_city_pipeline/worlds
       - ./maps:/workspace/osm_city_pipeline/maps
       - ../ackermann-vehicle-gzsim-ros2:/workspace/ackermann-vehicle-gzsim-ros2
-      - ../map_osm_converter/osm2world:/opt/osm2world:ro
+      - ./osm2world:/opt/osm2world:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     environment:
       - DISPLAY=${DISPLAY:-:0}
