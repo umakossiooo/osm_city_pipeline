@@ -9,6 +9,7 @@ from .osm_parser import parse_osm_file, get_way_coordinates
 
 
 # Highway types to extract (ordered by importance/priority)
+# Only include actual streets visible on the map - exclude service roads (parking, driveways)
 HIGHWAY_TYPES = [
     'motorway', 'motorway_link',
     'trunk', 'trunk_link',
@@ -17,8 +18,8 @@ HIGHWAY_TYPES = [
     'tertiary', 'tertiary_link',
     'unclassified',
     'residential',
-    'service',
-    'living_street'
+    # Excluded: 'service' (parking lots, driveways, internal paths)
+    # Excluded: 'living_street' (pedestrian-priority zones)
 ]
 
 

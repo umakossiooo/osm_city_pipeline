@@ -34,16 +34,31 @@ echo "Model name: $MODEL_NAME"
 echo "World name: $WORLD_NAME"
 echo ""
 
+# Step 0: Filter OSM to remove service roads (parking, driveways, internal paths)
+OSM_STEM=$(basename "$INPUT_OSM" .osm)
+FILTERED_OSM="$PROJECT_ROOT/maps/${OSM_STEM}_filtered.osm"
+echo "Step 0: Filtering OSM to remove service roads..."
+if python3 "$SCRIPT_DIR/filter_osm.py" "$INPUT_OSM" -o "$FILTERED_OSM"; then
+    echo "   ✅ Filtered OSM: $FILTERED_OSM"
+    OSM_FOR_MESH="$FILTERED_OSM"
+else
+    echo "   ⚠️  Filter failed, using original OSM"
+    OSM_FOR_MESH="$INPUT_OSM"
+fi
+echo ""
+
 # Step 1: Convert OSM to OBJ using OSM2World (skip if model already exists)
 MODEL_DIR="$PROJECT_ROOT/models/$MODEL_NAME"
 if [ -d "$MODEL_DIR" ]; then
     echo "Step 1: Model already exists, skipping OSM2World conversion..."
     echo "   Model: $MODEL_NAME"
     echo "   Directory: $MODEL_DIR"
+    echo "   ⚠️  To regenerate with filtered roads, delete: $MODEL_DIR"
 else
     echo "Step 1: Converting OSM to detailed 3D mesh..."
     if [ -f "$SCRIPT_DIR/convert_with_osm2world.sh" ]; then
-        bash "$SCRIPT_DIR/convert_with_osm2world.sh" "$INPUT_OSM" "$MODEL_NAME"
+        # Use filtered OSM for 3D mesh generation
+        bash "$SCRIPT_DIR/convert_with_osm2world.sh" "$OSM_FOR_MESH" "$MODEL_NAME"
     else
         echo "❌ convert_with_osm2world.sh not found!"
         exit 1
