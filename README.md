@@ -33,12 +33,12 @@ Generate a detailed 3D world with OSM2World mesh (buildings, terrain, vegetation
 - `maps/bari_spawn_points.yaml` - Spawn points (preserved for navigation)
 
 **Features:**
-- ✅ Detailed 3D terrain with elevation
-- ✅ Textured buildings with windows
-- ✅ Vegetation (trees in parks/forests)
-- ✅ Realistic road textures (asphalt, concrete)
-- ✅ Road coordinates preserved for robot navigation
-- ✅ Proper alignment and proportions
+- Detailed 3D terrain with elevation
+- Textured buildings with windows
+- Vegetation (trees in parks/forests)
+- Realistic road textures (asphalt, concrete)
+- Road coordinates preserved for robot navigation
+- Proper alignment and proportions
 
 ### 2. Spawn Robot on a Street
 

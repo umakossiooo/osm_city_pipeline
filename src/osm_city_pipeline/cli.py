@@ -44,50 +44,21 @@ def test_projection(args):
     
     if args.osm_file:
         osm_file_path = args.osm_file
-        print(f"Using OSM file: {osm_file_path}")
-        print("Extracting bounding box center from OSM file...")
     elif args.center_lat is not None and args.center_lon is not None:
         center_lat = args.center_lat
         center_lon = args.center_lon
-        print(f"Using custom center: ({center_lat}, {center_lon})")
     else:
-        # Use the point itself as center
         center_lat = lat
         center_lon = lon
-        print(f"Using input point as center: ({center_lat}, {center_lon})")
     
     try:
-        # Project to ENU
         if osm_file_path:
             east, north, up = project_to_enu(lat, lon, h, osm_file_path=osm_file_path)
         else:
             east, north, up = project_to_enu(lat, lon, h, 
                                             center_lat=center_lat, 
                                             center_lon=center_lon)
-        
-        # Display results
-        print("\n" + "="*60)
-        print("ENU Projection Results")
-        print("="*60)
-        print(f"Input WGS84:")
-        print(f"  Latitude:  {lat:.8f}°")
-        print(f"  Longitude: {lon:.8f}°")
-        print(f"  Height:    {h:.3f} m")
-        print()
-        print(f"Output ENU (East-North-Up):")
-        print(f"  East:  {east:.3f} m")
-        print(f"  North: {north:.3f} m")
-        print(f"  Up:    {up:.3f} m")
-        print("="*60)
-        
-        # If using OSM file, show the center point
-        if osm_file_path:
-            enu_proj = create_enu_from_osm(osm_file_path)
-            if enu_proj:
-                print(f"\nProjection center (OSM bounding box center):")
-                print(f"  Latitude:  {enu_proj.center_lat:.8f}°")
-                print(f"  Longitude: {enu_proj.center_lon:.8f}°")
-        
+        print(f"{east:.3f} {north:.3f} {up:.3f}")
         return 0
     
     except Exception as e:
@@ -106,30 +77,7 @@ def extract_roads(args):
         output_file = str(osm_path.parent / f"{osm_path.stem}_metadata.json")
     
     try:
-        print(f"Extracting roads from: {osm_file}")
-        print(f"Output will be saved to: {output_file}")
-        print("")
-        
-        # Extract metadata
-        metadata = extract_and_save_road_metadata(osm_file, output_file)
-        
-        # Display summary
-        summary = metadata['summary']
-        print("="*60)
-        print("Road Extraction Summary")
-        print("="*60)
-        print(f"Total highways: {summary['total_highways']}")
-        print(f"Total intersections: {summary['total_intersections']}")
-        print(f"Total lane centerlines: {summary['total_lane_centerlines']}")
-        print(f"Named roads: {summary['named_roads']}")
-        print("")
-        print("Highway types:")
-        for hw_type, count in sorted(summary['highway_types'].items()):
-            print(f"  {hw_type}: {count}")
-        print("")
-        print(f"Metadata saved to: {output_file}")
-        print("="*60)
-        
+        extract_and_save_road_metadata(osm_file, output_file)
         return 0
     
     except Exception as e:
@@ -154,14 +102,10 @@ def generate_world(args):
         output_file = str(worlds_dir / f"{osm_path.stem}.sdf")
     
     try:
-        print(f"Generating Gazebo world from: {osm_file}")
-        print(f"Output will be saved to: {output_file}")
-        print("")
         
         # Delete old file if exists (RULE 4: regenerate)
         output_path = Path(output_file)
         if output_path.exists():
-            print(f"Removing old world file: {output_file}")
             output_path.unlink()
         
         # Try enhanced generation first (with OSM2World mesh)
@@ -181,20 +125,13 @@ def generate_world(args):
                 model_dir = script_dir / "models" / model_name
                 
                 if model_dir.exists():
-                    print("Using enhanced generation with OSM2World mesh")
-                    print(f"   Model: {model_name}")
                     generate_enhanced_sdf_world(
                         osm_file, output_file, model_name, world_name, use_osm2world=True
                     )
                 else:
-                    print("WARNING: Enhanced model not found, generating mesh first...")
-                    print(f"   Model directory: {model_dir}")
-                    print("   Run: ./scripts/convert_with_osm2world.sh <osm_file> <model_name>")
-                    print("   Falling back to basic generation...")
                     raise FileNotFoundError("Model not found")
                     
             except (ImportError, FileNotFoundError) as e:
-                print(f"WARNING: Enhanced generation not available: {e}")
                 print("   Using basic generation instead...")
                 use_enhanced = False
         

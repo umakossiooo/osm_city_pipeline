@@ -18,9 +18,6 @@ def find_central_street_near_buildings(spawn_file, num_results=5):
     true_center_east = (min(all_east) + max(all_east)) / 2
     true_center_north = (min(all_north) + max(all_north)) / 2
     
-    print(f"True map center: ({true_center_east:.1f}, {true_center_north:.1f})")
-    print()
-    
     # Group spawn points by street
     streets = {}
     for sp in spawn_points:
@@ -44,22 +41,12 @@ def find_central_street_near_buildings(spawn_file, num_results=5):
     
     street_distances.sort(key=lambda x: x[0])
     
-    print(f"Streets closest to TRUE map center (near buildings in city center):")
-    print("="*70)
     for i, (dist, name, sp) in enumerate(street_distances[:num_results], 1):
-        pos = sp['position']
-        highway = sp.get('highway_type', 'unknown')
-        print(f"{i}. {name} ({highway})")
-        print(f"   Distance: {dist:.1f}m from true center")
-        print(f"   Position: ({pos['east']:.1f}, {pos['north']:.1f})")
-        print(f"   Spawn ID: {sp['id']}")
-        print()
+        print(f"{name}")
     
     return street_distances[0][1] if street_distances else None
 
 if __name__ == "__main__":
     spawn_file = sys.argv[1] if len(sys.argv) > 1 else "maps/bari_spawn_points.yaml"
-    best_street = find_central_street_near_buildings(spawn_file)
-    if best_street:
-        print(f"Best central street: {best_street}")
+    find_central_street_near_buildings(spawn_file)
 

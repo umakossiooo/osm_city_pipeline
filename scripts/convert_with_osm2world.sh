@@ -19,19 +19,13 @@ else
     OSM_PATH="$PROJECT_ROOT/$INPUT_OSM"
 fi
 
-# Check if OSM2World is available (via map_osm_converter or direct)
+# Check if OSM2World is available
 OSM2WORLD_JAR=""
 if [ -f "/opt/osm2world/OSM2World.jar" ]; then
     OSM2WORLD_JAR="/opt/osm2world/OSM2World.jar"
-    echo "Found OSM2World at: $OSM2WORLD_JAR"
 elif [ -f "$PROJECT_ROOT/../map_osm_converter/osm2world/OSM2World.jar" ]; then
     OSM2WORLD_JAR="$PROJECT_ROOT/../map_osm_converter/osm2world/OSM2World.jar"
-    echo "Found OSM2World at: $OSM2WORLD_JAR"
 else
-    echo "ERROR: OSM2World.jar not found. Please ensure OSM2World is available."
-    echo "   Expected locations:"
-    echo "   - /opt/osm2world/OSM2World.jar (inside container)"
-    echo "   - ../map_osm_converter/osm2world/OSM2World.jar (on host)"
     exit 1
 fi
 
@@ -50,71 +44,44 @@ ENHANCED_CONFIG="$PROJECT_ROOT/config/enhanced.properties"
 CONFIG_ARG=""
 if [ -f "$ENHANCED_CONFIG" ]; then
     CONFIG_ARG="--config $ENHANCED_CONFIG"
-    echo "Using enhanced configuration"
-else
-    echo "WARNING: Enhanced config not found, using default OSM2World settings"
 fi
 
-# === 1. Convert OSM to OBJ with OSM2World ===
-echo "Converting OSM to OBJ with OSM2World..."
-echo "   Input: $OSM_PATH"
-echo "   Output: $OUTPUT_DIR/$MODEL_NAME.obj"
-
 if [ "$IN_DOCKER" = true ]; then
-    # Running inside Docker
     java -Xms512m -Xmx4g -jar "$OSM2WORLD_JAR" \
         -i "$OSM_PATH" \
         -o "$OUTPUT_DIR/$MODEL_NAME.obj" \
-        $CONFIG_ARG
+        $CONFIG_ARG >/dev/null 2>&1
 else
-    # Running on host - try to use Docker if available
-    if command -v docker &> /dev/null; then
-        # Check if map_osm_converter container is running
-        if docker ps | grep -q osm2world; then
-            echo "   Using map_osm_converter Docker container..."
-            docker exec osm2world bash -c \
-                "java -Xms512m -Xmx4g -jar /opt/osm2world/OSM2World.jar \
-                -i /workspace/$(realpath --relative-to="$PROJECT_ROOT/.." "$OSM_PATH") \
-                -o /workspace/$(realpath --relative-to="$PROJECT_ROOT/.." "$OUTPUT_DIR")/$MODEL_NAME.obj \
-                $([ -f "$ENHANCED_CONFIG" ] && echo "--config /workspace/$(realpath --relative-to="$PROJECT_ROOT/.." "$ENHANCED_CONFIG")" || echo "")"
-        else
-            echo "   Running OSM2World directly (requires Java)..."
-            java -Xms512m -Xmx4g -jar "$OSM2WORLD_JAR" \
-                -i "$OSM_PATH" \
-                -o "$OUTPUT_DIR/$MODEL_NAME.obj" \
-                $CONFIG_ARG
-        fi
+    if command -v docker &> /dev/null && docker ps | grep -q osm2world; then
+        docker exec osm2world bash -c \
+            "java -Xms512m -Xmx4g -jar /opt/osm2world/OSM2World.jar \
+            -i /workspace/$(realpath --relative-to="$PROJECT_ROOT/.." "$OSM_PATH") \
+            -o /workspace/$(realpath --relative-to="$PROJECT_ROOT/.." "$OUTPUT_DIR")/$MODEL_NAME.obj \
+            $([ -f "$ENHANCED_CONFIG" ] && echo "--config /workspace/$(realpath --relative-to="$PROJECT_ROOT/.." "$ENHANCED_CONFIG")" || echo "")" >/dev/null 2>&1
     else
-        echo "   Running OSM2World directly (requires Java)..."
         java -Xms512m -Xmx4g -jar "$OSM2WORLD_JAR" \
             -i "$OSM_PATH" \
             -o "$OUTPUT_DIR/$MODEL_NAME.obj" \
-            $CONFIG_ARG
+            $CONFIG_ARG >/dev/null 2>&1
     fi
 fi
 
 if [ ! -f "$OUTPUT_DIR/$MODEL_NAME.obj" ]; then
-    echo "ERROR: OSM2World conversion failed. Check logs above."
     exit 1
 fi
 
-echo "OBJ file created: $OUTPUT_DIR/$MODEL_NAME.obj"
-
-# === 2. Compute vertex normals ===
-echo "Computing vertex normals..."
+# Compute vertex normals
 python3 "$SCRIPT_DIR/../tools/add_obj_normals.py" \
     "$OUTPUT_DIR/$MODEL_NAME.obj" \
-    "$OUTPUT_DIR/${MODEL_NAME}_with_normals.obj" && \
+    "$OUTPUT_DIR/${MODEL_NAME}_with_normals.obj" >/dev/null 2>&1 && \
     mv "$OUTPUT_DIR/${MODEL_NAME}_with_normals.obj" "$OUTPUT_DIR/$MODEL_NAME.obj"
 
-# === 3. Copy OBJ and MTL to model directory ===
-echo "Packaging Gazebo model..."
+# Copy OBJ and MTL to model directory
 cp "$OUTPUT_DIR/$MODEL_NAME.obj" "$MODEL_DIR/meshes/"
 [ -f "$OUTPUT_DIR/$MODEL_NAME.obj.mtl" ] && cp "$OUTPUT_DIR/$MODEL_NAME.obj.mtl" "$MODEL_DIR/meshes/" || true
 
-# === 4. Copy textures and assets (if available) ===
+# Copy textures and assets (if available)
 if [ -d "$PROJECT_ROOT/../map_osm_converter/osm2world/textures" ]; then
-    echo "Copying OSM2World textures and assets..."
     [ -d "$PROJECT_ROOT/../map_osm_converter/osm2world/textures/cc0textures" ] && \
         cp -r "$PROJECT_ROOT/../map_osm_converter/osm2world/textures/cc0textures" "$MODEL_DIR/meshes/" 2>/dev/null || true
     [ -d "$PROJECT_ROOT/../map_osm_converter/osm2world/textures/custom" ] && \
@@ -167,13 +134,4 @@ cat <<EOF > "$MODEL_DIR/model.sdf"
 </sdf>
 EOF
 
-echo "Model '$MODEL_NAME' created in $MODEL_DIR/"
-echo ""
-echo "To use this model, export:"
-echo "  export GZ_SIM_RESOURCE_PATH=\$GZ_SIM_RESOURCE_PATH:$(realpath "$PROJECT_ROOT/models")"
-echo ""
-echo "Model includes:"
-echo "  - Detailed 3D mesh with terrain, buildings, roads, vegetation"
-echo "  - Textures and materials from OSM2World"
-echo "  - Proper vertex normals for Gazebo physics"
 

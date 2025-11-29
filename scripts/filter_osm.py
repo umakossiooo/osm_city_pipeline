@@ -117,27 +117,7 @@ def main():
         base = Path(input_file).stem
         output_file = str(Path(input_file).parent / f"{base}_filtered.osm")
     
-    print(f"Filtering OSM file: {input_file}")
-    print(f"Output: {output_file}")
-    print()
-    
-    stats = filter_osm(input_file, output_file)
-    
-    print("=" * 50)
-    print("Filtering Summary")
-    print("=" * 50)
-    print(f"Total ways processed: {stats['total_ways']}")
-    print(f"Ways kept: {stats['kept_ways']}")
-    print(f"Ways removed: {stats['removed_ways']}")
-    print()
-    
-    if stats['removed_highway_types']:
-        print("Removed highway types:")
-        for hw_type, count in sorted(stats['removed_highway_types'].items()):
-            print(f"  - {hw_type}: {count}")
-    
-    print("=" * 50)
-    print(f"Filtered OSM file saved: {output_file}")
+    filter_osm(input_file, output_file)
 
 
 if __name__ == '__main__':
