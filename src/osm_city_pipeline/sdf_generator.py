@@ -14,7 +14,7 @@ def create_sdf_world(geometries: Dict, world_name: str = "osm_city") -> str:
     Create SDF world XML from geometry data.
     
     Args:
-        geometries: Dictionary with roads, buildings, parks, sidewalks
+        geometries: Dictionary with roads, buildings, parks
         world_name: Name of the world
     
     Returns:
@@ -99,7 +99,9 @@ def create_sdf_world(geometries: Dict, world_name: str = "osm_city") -> str:
                 length = math.sqrt(dx*dx + dy*dy)
                 angle = math.atan2(dy, dx)
                 
-                if length > 0.1:  # Only create if segment is meaningful
+                # Filter out very short segments (less than 1 meter) to avoid random pieces
+                if length < 1.0:
+                    continue  # Skip very short segments
                     # Create visual
                     visual = ET.SubElement(link, 'visual', name=f'visual_{j}')
                     pose_vis = ET.SubElement(visual, 'pose')
@@ -279,47 +281,6 @@ def create_sdf_world(geometries: Dict, world_name: str = "osm_city") -> str:
                 diffuse.text = '0.2 0.7 0.2 1'  # Bright green
                 specular = ET.SubElement(material_vis, 'specular')
                 specular.text = '0.1 0.3 0.1 1'
-    
-    # Add sidewalks (green strips between roads and buildings)
-    for i, sidewalk in enumerate(geometries.get('sidewalks', [])):
-        sidewalk_model = ET.SubElement(world, 'model', name=f'sidewalk_{sidewalk["way_id"]}')
-        static = ET.SubElement(sidewalk_model, 'static')
-        static.text = 'true'
-        link = ET.SubElement(sidewalk_model, 'link', name='link')
-        
-        vertices = sidewalk['vertices']
-        if len(vertices) >= 2:
-            # Create sidewalk segments similar to roads
-            for j in range(len(vertices) - 1):
-                v1 = vertices[j]
-                v2 = vertices[j + 1]
-                
-                center_x = (v1[0] + v2[0]) / 2.0
-                center_y = (v1[1] + v2[1]) / 2.0
-                center_z = 0.02  # Slightly above ground
-                
-                dx = v2[0] - v1[0]
-                dy = v2[1] - v1[1]
-                length = math.sqrt(dx*dx + dy*dy)
-                angle = math.atan2(dy, dx)
-                
-                if length > 0.1:
-                    # Create visual
-                    visual = ET.SubElement(link, 'visual', name=f'visual_{j}')
-                    pose_vis = ET.SubElement(visual, 'pose')
-                    pose_vis.text = f'{center_x} {center_y} {center_z} 0 0 {angle}'
-                    geometry_vis = ET.SubElement(visual, 'geometry')
-                    box_vis = ET.SubElement(geometry_vis, 'box')
-                    size_vis = ET.SubElement(box_vis, 'size')
-                    size_vis.text = f'{length} {sidewalk["width"]} 0.05'
-                    material_vis = ET.SubElement(visual, 'material')
-                    # Use green for sidewalks (like in reference image)
-                    ambient = ET.SubElement(material_vis, 'ambient')
-                    ambient.text = '0.15 0.4 0.15 1'  # Dark green
-                    diffuse = ET.SubElement(material_vis, 'diffuse')
-                    diffuse.text = '0.2 0.5 0.2 1'  # Medium green
-                    specular = ET.SubElement(material_vis, 'specular')
-                    specular.text = '0.1 0.2 0.1 1'
     
     # Add default camera pose
     gui = ET.SubElement(world, 'gui')

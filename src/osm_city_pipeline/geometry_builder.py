@@ -94,35 +94,6 @@ def build_park_geometry(park: Dict, enu_proj: ENUProjection) -> Dict:
     }
 
 
-def build_sidewalk_geometry(highway: Dict, enu_proj: ENUProjection, width: float = 1.5) -> Dict:
-    """
-    Build 3D geometry for sidewalks along a highway.
-    
-    Args:
-        highway: Highway dictionary with coordinates
-        enu_proj: ENU projection instance
-        width: Sidewalk width in meters (default: 1.5)
-    
-    Returns:
-        Dictionary with geometry data:
-        - type: 'sidewalk'
-        - vertices: List of (x, y, z) tuples
-        - width: Sidewalk width
-    """
-    vertices = []
-    
-    for lat, lon in highway['coordinates']:
-        e, n, u = enu_proj.project_to_enu(lat, lon, 0.0)
-        vertices.append((e, n, u))
-    
-    return {
-        'type': 'sidewalk',
-        'way_id': highway['way_id'],
-        'vertices': vertices,
-        'width': width
-    }
-
-
 def extract_buildings(osm_file_path: str) -> List[Dict]:
     """
     Extract buildings from OSM file (both ways and relations).
@@ -235,7 +206,6 @@ def build_all_geometry(osm_file_path: str, enu_proj: ENUProjection) -> Dict:
         - roads: List of road geometries
         - buildings: List of building geometries
         - parks: List of park geometries
-        - sidewalks: List of sidewalk geometries
     """
     # Extract road metadata
     road_metadata = extract_road_metadata(osm_file_path)
@@ -250,6 +220,25 @@ def build_all_geometry(osm_file_path: str, enu_proj: ENUProjection) -> Dict:
     # Build geometries
     road_geometries = []
     for highway in highways:
+        # Calculate total road length to filter out very short segments
+        coordinates = highway['coordinates']
+        if len(coordinates) < 2:
+            continue  # Skip roads with insufficient points
+        
+        # Calculate total length of the road
+        total_length = 0.0
+        for i in range(len(coordinates) - 1):
+            lat1, lon1 = coordinates[i]
+            lat2, lon2 = coordinates[i + 1]
+            e1, n1, _ = enu_proj.project_to_enu(lat1, lon1, 0.0)
+            e2, n2, _ = enu_proj.project_to_enu(lat2, lon2, 0.0)
+            segment_length = math.sqrt((e2 - e1)**2 + (n2 - n1)**2)
+            total_length += segment_length
+        
+        # Filter out very short roads (less than 5 meters) - these are likely random pieces
+        if total_length < 5.0:
+            continue  # Skip short disconnected segments
+        
         road_geom = build_road_geometry(highway, enu_proj)
         road_geometries.append(road_geom)
     
@@ -272,17 +261,9 @@ def build_all_geometry(osm_file_path: str, enu_proj: ENUProjection) -> Dict:
         park_geom = build_park_geometry(park, enu_proj)
         park_geometries.append(park_geom)
     
-    sidewalk_geometries = []
-    for highway in highways:
-        # Only add sidewalks to major roads
-        if highway['highway_type'] in ['primary', 'secondary', 'tertiary', 'residential']:
-            sidewalk_geom = build_sidewalk_geometry(highway, enu_proj)
-            sidewalk_geometries.append(sidewalk_geom)
-    
     return {
         'roads': road_geometries,
         'buildings': building_geometries,
-        'parks': park_geometries,
-        'sidewalks': sidewalk_geometries
+        'parks': park_geometries
     }
 

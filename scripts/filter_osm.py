@@ -46,27 +46,50 @@ def filter_osm(input_file: str, output_file: str) -> dict:
     }
     
     ways_to_remove = []
+    tags_to_remove = []
     
     for way in root.findall('way'):
         stats['total_ways'] += 1
         
         # Check if this way has a highway tag
         highway_tag = None
-        for tag in way.findall('tag'):
-            if tag.get('k') == 'highway':
-                highway_tag = tag.get('v')
-                break
+        has_sidewalk_tag = False
+        is_footway = False
         
-        # If it's a highway type we want to remove, mark it
-        if highway_tag and highway_tag not in KEEP_HIGHWAY_TYPES:
+        for tag in way.findall('tag'):
+            k = tag.get('k')
+            v = tag.get('v', '').lower()
+            
+            if k == 'highway':
+                highway_tag = tag.get('v')
+                # Check if it's a footway or pedestrian way
+                if v in ['footway', 'pedestrian', 'path', 'steps', 'cycleway']:
+                    is_footway = True
+            # Remove sidewalk-related tags
+            elif k in ['sidewalk', 'sidewalk:left', 'sidewalk:right', 'sidewalk:both']:
+                has_sidewalk_tag = True
+                tags_to_remove.append((way, tag))
+        
+        # Remove footways and pedestrian paths
+        if is_footway:
             ways_to_remove.append(way)
             stats['removed_ways'] += 1
-            
+            if highway_tag not in stats['removed_highway_types']:
+                stats['removed_highway_types'][highway_tag] = 0
+            stats['removed_highway_types'][highway_tag] += 1
+        # If it's a highway type we want to remove, mark it
+        elif highway_tag and highway_tag not in KEEP_HIGHWAY_TYPES:
+            ways_to_remove.append(way)
+            stats['removed_ways'] += 1
             if highway_tag not in stats['removed_highway_types']:
                 stats['removed_highway_types'][highway_tag] = 0
             stats['removed_highway_types'][highway_tag] += 1
         else:
             stats['kept_ways'] += 1
+    
+    # Remove sidewalk-related tags from roads (so OSM2World doesn't generate sidewalks)
+    for way, tag in tags_to_remove:
+        way.remove(tag)
     
     # Remove the marked ways
     for way in ways_to_remove:
@@ -114,7 +137,7 @@ def main():
             print(f"  - {hw_type}: {count}")
     
     print("=" * 50)
-    print(f"✅ Filtered OSM file saved: {output_file}")
+    print(f"Filtered OSM file saved: {output_file}")
 
 
 if __name__ == '__main__':

@@ -39,10 +39,10 @@ OSM_STEM=$(basename "$INPUT_OSM" .osm)
 FILTERED_OSM="$PROJECT_ROOT/maps/${OSM_STEM}_filtered.osm"
 echo "Step 0: Filtering OSM to remove service roads..."
 if python3 "$SCRIPT_DIR/filter_osm.py" "$INPUT_OSM" -o "$FILTERED_OSM"; then
-    echo "   ✅ Filtered OSM: $FILTERED_OSM"
+    echo "   Filtered OSM: $FILTERED_OSM"
     OSM_FOR_MESH="$FILTERED_OSM"
 else
-    echo "   ⚠️  Filter failed, using original OSM"
+    echo "   WARNING: Filter failed, using original OSM"
     OSM_FOR_MESH="$INPUT_OSM"
 fi
 echo ""
@@ -53,14 +53,14 @@ if [ -d "$MODEL_DIR" ]; then
     echo "Step 1: Model already exists, skipping OSM2World conversion..."
     echo "   Model: $MODEL_NAME"
     echo "   Directory: $MODEL_DIR"
-    echo "   ⚠️  To regenerate with filtered roads, delete: $MODEL_DIR"
+    echo "   WARNING: To regenerate with filtered roads, delete: $MODEL_DIR"
 else
     echo "Step 1: Converting OSM to detailed 3D mesh..."
     if [ -f "$SCRIPT_DIR/convert_with_osm2world.sh" ]; then
         # Use filtered OSM for 3D mesh generation
         bash "$SCRIPT_DIR/convert_with_osm2world.sh" "$OSM_FOR_MESH" "$MODEL_NAME"
     else
-        echo "❌ convert_with_osm2world.sh not found!"
+        echo "ERROR: convert_with_osm2world.sh not found!"
         exit 1
     fi
 fi
@@ -71,10 +71,10 @@ echo "Step 2: Exporting road metadata (preserves coordinates for navigation)..."
 cd "$PROJECT_ROOT"
 if [ -f "scripts/osm-city" ]; then
     ./scripts/osm-city export-metadata --osm-file "$INPUT_OSM" || {
-        echo "⚠️  Metadata export failed, but continuing..."
+        echo "WARNING: Metadata export failed, but continuing..."
     }
 else
-    echo "⚠️  osm-city script not found, skipping metadata export"
+    echo "WARNING: osm-city script not found, skipping metadata export"
 fi
 
 # Step 3: Generate enhanced SDF world
@@ -82,17 +82,17 @@ echo ""
 echo "Step 3: Generating enhanced SDF world..."
 if [ -f "scripts/osm-city" ]; then
     ./scripts/osm-city generate --osm-file "$INPUT_OSM" --output "worlds/${WORLD_NAME}.sdf" --world-name "$WORLD_NAME" --enhanced || {
-        echo "⚠️  Enhanced generation failed, trying basic generation..."
+        echo "WARNING: Enhanced generation failed, trying basic generation..."
         ./scripts/osm-city generate --osm-file "$INPUT_OSM" --output "worlds/${WORLD_NAME}.sdf" --world-name "$WORLD_NAME" --no-enhanced
     }
 else
-    echo "❌ osm-city script not found!"
+        echo "ERROR: osm-city script not found!"
     exit 1
 fi
 
 echo ""
 echo "=========================================="
-echo "✅ Enhanced world generation complete!"
+echo "Enhanced world generation complete!"
 echo "=========================================="
 echo "World file: worlds/${WORLD_NAME}.sdf"
 echo "Model: models/$MODEL_NAME"
@@ -114,7 +114,7 @@ if [ -n "$ACKERMANN_DIR" ] && [ -d "$ACKERMANN_DIR/saye_description" ]; then
     TARGET_WORLD_DIR="$ACKERMANN_DIR/saye_description/worlds"
     mkdir -p "$TARGET_WORLD_DIR"
     cp "worlds/${WORLD_NAME}.sdf" "$TARGET_WORLD_DIR/${WORLD_NAME}.sdf"
-    echo "  ➤ World copied to: $TARGET_WORLD_DIR/${WORLD_NAME}.sdf"
+        echo "  World copied to: $TARGET_WORLD_DIR/${WORLD_NAME}.sdf"
 
     SOURCE_MODEL_DIR="$PROJECT_ROOT/models/$MODEL_NAME"
     TARGET_MODEL_DIR="$ACKERMANN_DIR/saye_description/models/$MODEL_NAME"
@@ -122,15 +122,15 @@ if [ -n "$ACKERMANN_DIR" ] && [ -d "$ACKERMANN_DIR/saye_description" ]; then
         rm -rf "$TARGET_MODEL_DIR"
         mkdir -p "$TARGET_MODEL_DIR"
         cp -a "$SOURCE_MODEL_DIR/." "$TARGET_MODEL_DIR/"
-        echo "  ➤ Model synced to: $TARGET_MODEL_DIR"
+        echo "  Model synced to: $TARGET_MODEL_DIR"
     else
-        echo "  ⚠️  Model directory not found: $SOURCE_MODEL_DIR"
+        echo "  WARNING: Model directory not found: $SOURCE_MODEL_DIR"
     fi
 
-    echo "✅ Ackermann stack world + model updated."
+    echo "Ackermann stack world + model updated."
 else
     echo ""
-    echo "ℹ️  Ackermann stack not detected next to this repo; skipping sync."
+    echo "INFO: Ackermann stack not detected next to this repo; skipping sync."
     echo "    Expected directory: $PROJECT_ROOT/../ackermann-vehicle-gzsim-ros2"
 fi
 

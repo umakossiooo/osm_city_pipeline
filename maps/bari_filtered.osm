@@ -15348,7 +15348,6 @@
   <tag k="name:etymology:wikidata" v="Q125818916" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15393,7 +15392,6 @@
   <tag k="name:etymology:wikidata" v="Q1067" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70121;70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15408,7 +15406,6 @@
   <tag k="name" v="Via Beata Elia di San Clemente" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15437,7 +15434,6 @@
   <tag k="name" v="Via Marchese di Montrone" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15466,7 +15462,6 @@
   <tag k="name:etymology:wikidata" v="Q3619233" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70121" />
-  <tag k="sidewalk" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15498,7 +15493,6 @@
   <tag k="name:etymology:wikidata" v="Q88873199" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15518,7 +15512,6 @@
   <tag k="oneway" v="yes" />
   <tag k="parking:left" v="separate" />
   <tag k="parking:right" v="no" />
-  <tag k="sidewalk" v="separate" />
   <tag k="smoothness" v="good" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
@@ -15550,7 +15543,6 @@
   <tag k="parking:left" v="lane" />
   <tag k="parking:right" v="no" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15632,7 +15624,6 @@
   <tag k="name" v="Via de Rossi" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15669,7 +15660,6 @@
   <tag k="name:etymology:wikidata" v="Q22069555" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk" v="no" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15708,7 +15698,6 @@
   <tag k="name:etymology:wikidata" v="Q541300" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15764,7 +15753,6 @@
   <tag k="name" v="Via Principe Amedeo" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15798,7 +15786,6 @@
   <tag k="name:etymology:wikidata" v="Q3610122" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15834,7 +15821,6 @@
   <tag k="name:etymology:wikidata" v="Q3761911" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk" v="separate" />
   <tag k="surface" v="asphalt" />
  </way>
  <way id="30029586" visible="true" version="23" changeset="164167279" timestamp="2025-03-27T14:35:47Z" user="Ferdinando Traversa" uid="4983516">
@@ -15953,7 +15939,6 @@
   <tag k="maxspeed:type" v="IT:urban" />
   <tag k="name" v="Piazza Umberto Primo" />
   <tag k="oneway" v="yes" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15971,7 +15956,6 @@
   <tag k="name" v="Piazza Umberto Primo" />
   <tag k="name:etymology:wikidata" v="Q153688" />
   <tag k="oneway" v="yes" />
-  <tag k="sidewalk" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -15991,7 +15975,6 @@
   <tag k="name:etymology:wikidata" v="Q3616126" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70121" />
-  <tag k="sidewalk" v="both" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -16014,7 +15997,6 @@
   <tag k="name" v="Via Principe Amedeo" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -16043,7 +16025,6 @@
   <tag k="name" v="Via de Rossi" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -16073,7 +16054,6 @@
   <tag k="old_name" v="Via Banco" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -16114,7 +16094,6 @@
   <tag k="name" v="Via Nicolò Dell'Arca" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70121" />
-  <tag k="sidewalk" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -16131,7 +16110,6 @@
   <tag k="name" v="Via Michele Garruba" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
  </way>
  <way id="303021621" visible="true" version="4" changeset="146043740" timestamp="2024-01-08T21:14:32Z" user="Alexis04132" uid="20509407">
@@ -16371,7 +16349,6 @@
   <tag k="name" v="Via Roberto da Bari" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>
@@ -16397,7 +16374,6 @@
   <tag k="name:etymology:wikidata" v="Q3616126" />
   <tag k="oneway" v="yes" />
   <tag k="postal_code" v="70122" />
-  <tag k="sidewalk:both" v="separate" />
   <tag k="source" v="Stradario Bari" />
   <tag k="surface" v="asphalt" />
  </way>

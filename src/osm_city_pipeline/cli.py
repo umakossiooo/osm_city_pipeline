@@ -181,20 +181,20 @@ def generate_world(args):
                 model_dir = script_dir / "models" / model_name
                 
                 if model_dir.exists():
-                    print("✅ Using enhanced generation with OSM2World mesh")
+                    print("Using enhanced generation with OSM2World mesh")
                     print(f"   Model: {model_name}")
                     generate_enhanced_sdf_world(
                         osm_file, output_file, model_name, world_name, use_osm2world=True
                     )
                 else:
-                    print("⚠️  Enhanced model not found, generating mesh first...")
+                    print("WARNING: Enhanced model not found, generating mesh first...")
                     print(f"   Model directory: {model_dir}")
                     print("   Run: ./scripts/convert_with_osm2world.sh <osm_file> <model_name>")
                     print("   Falling back to basic generation...")
                     raise FileNotFoundError("Model not found")
                     
             except (ImportError, FileNotFoundError) as e:
-                print(f"⚠️  Enhanced generation not available: {e}")
+                print(f"WARNING: Enhanced generation not available: {e}")
                 print("   Using basic generation instead...")
                 use_enhanced = False
         
@@ -223,7 +223,6 @@ def generate_world(args):
             print("  - Grey drivable roads")
             print("  - Extruded buildings")
             print("  - Parks and green areas")
-            print("  - Sidewalks")
         print("  - Default camera pose")
         print("="*60)
         
@@ -657,7 +656,7 @@ def spawn_on_street(args):
                 matching.append(sp)
         
         if not matching:
-            print(f"❌ No spawn points found for street: {street_name}")
+            print(f"ERROR: No spawn points found for street: {street_name}")
             print("\nAvailable streets:")
             streets = set()
             for sp in spawn_points:

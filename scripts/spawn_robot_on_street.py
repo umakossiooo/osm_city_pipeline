@@ -29,7 +29,7 @@ def create_robot_spawn_sdf(spawn_file: str, street_name: str, output_file: str,
             matching.append(sp)
     
     if not matching:
-        print(f"❌ No spawn points found for street: {street_name}")
+        print(f"ERROR: No spawn points found for street: {street_name}")
         print("\nAvailable streets:")
         streets = set()
         for sp in spawn_points:
@@ -66,7 +66,7 @@ def create_robot_spawn_sdf(spawn_file: str, street_name: str, output_file: str,
     orient = spawn_point.get('orientation', {})
     yaw = orient.get('yaw', 0.0)
     
-    print(f"✅ Found spawn point on: {spawn_point.get('road_name', street_name)}")
+    print(f"Found spawn point on: {spawn_point.get('road_name', street_name)}")
     print(f"   Position: ({pos['east']:.3f}, {pos['north']:.3f}, {pos['up']:.3f})")
     print(f"   Yaw: {yaw:.3f} rad ({yaw * 180 / 3.14159:.1f} deg)")
     print(f"   Creating SDF with robot...")
@@ -188,7 +188,7 @@ def create_robot_spawn_sdf(spawn_file: str, street_name: str, output_file: str,
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(reparsed.toprettyxml(indent='  '))
     
-    print(f"✅ SDF created: {output_file}")
+    print(f"SDF created: {output_file}")
     print(f"   Robot spawned on: {spawn_point.get('road_name', street_name)}")
     print(f"   Robot position: ({pos['east']:.3f}, {pos['north']:.3f}, {robot_z:.3f})")
     print(f"   Robot orientation: {yaw:.3f} rad ({yaw * 180 / 3.14159:.1f} deg)")

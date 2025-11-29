@@ -61,5 +61,5 @@ if __name__ == "__main__":
     spawn_file = sys.argv[1] if len(sys.argv) > 1 else "maps/bari_spawn_points.yaml"
     best_street = find_central_street_near_buildings(spawn_file)
     if best_street:
-        print(f"✅ Best central street: {best_street}")
+        print(f"Best central street: {best_street}")
 

@@ -239,7 +239,7 @@ def generate_enhanced_sdf_world(
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(sdf_xml)
     
-    print(f"✅ Enhanced SDF world generated: {output_path}")
+    print(f"Enhanced SDF world generated: {output_path}")
     print(f"   Model: {model_name}")
     print(f"   World: {world_name}")
     if road_metadata:
