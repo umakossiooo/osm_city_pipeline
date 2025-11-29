@@ -70,9 +70,6 @@ gz sim worlds/bari_world.sdf
 # View robot on street
 gz sim worlds/robot_center.sdf
 
-# Or use the launch script
-./scripts/launch_gazebo.sh worlds/bari_world.sdf
-
 ### 4. Sync with Ackermann Vehicle Stack
 
 When `../ackermann-vehicle-gzsim-ros2` is present (and mounted in the Docker
@@ -145,7 +142,6 @@ osm_city_pipeline/
 │   ├── convert_with_osm2world.sh     # OSM2World conversion
 │   ├── spawn_robot_on_street.py      # Robot spawning on streets
 │   ├── find_central_street_near_buildings.py  # Find central streets
-│   ├── launch_gazebo.sh             # Launch Gazebo helper
 │   └── osm-city                      # CLI tool
 ├── config/
 │   └── enhanced.properties          # OSM2World configuration
